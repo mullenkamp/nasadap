@@ -9,8 +9,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 # General parameters
 name = 'nasaprecip'
 main_package = 'nasaprecip'
-datasets = 'datasets'
-version = '1.0.1'
+# datasets = 'datasets'
+version = '1.0.2'
 
 # The below code is for readthedocs. To have sphinx/readthedocs interact with
 # the contained package, readthedocs needs to build the package. But the dependencies
@@ -25,14 +25,14 @@ with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 # get all data dirs in the datasets module
-data_files = []
-
-for item in os.listdir(os.path.join(main_package, datasets)):
-    if not item.startswith('__'):
-        if os.path.isdir(os.path.join(main_package, datasets, item)):
-            data_files.append(os.path.join(datasets, item, '*'))
-        elif item.endswith('.zip'):
-            data_files.append(os.path.join(datasets, item))
+# data_files = []
+#
+# for item in os.listdir(os.path.join(main_package, datasets)):
+#     if not item.startswith('__'):
+#         if os.path.isdir(os.path.join(main_package, datasets, item)):
+#             data_files.append(os.path.join(datasets, item, '*'))
+#         elif item.endswith('.zip'):
+#             data_files.append(os.path.join(datasets, item))
 
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
@@ -159,9 +159,9 @@ setup(
     #
     # If using Python 2.6 or earlier, then these have to be included in
     # MANIFEST.in as well.
-    package_data={  # Optional
-        main_package: [datasets + '/*.csv'],
-    },
+    # package_data={  # Optional
+    #     main_package: [datasets + '/*.csv'],
+    # },
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:

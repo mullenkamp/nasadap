@@ -1,6 +1,6 @@
 {% set name = "nasaprecip" %}
-{% set version = "1.0.1" %}
-{% set sha256 = "403822084d465c21b03d2ae52a9ccedd4f373e154adf7cb80732347fba45d141" %}
+{% set version = "1.0.2" %}
+{% set sha256 = "ed7c5abaaab3df6bf7f7a5ab8d7b907b730513bd41dd133ce22926948f12c438" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
 #  `openssl sha256 <file name>`.
