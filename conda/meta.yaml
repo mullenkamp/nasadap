@@ -1,6 +1,6 @@
 {% set name = "nasaprecip" %}
-{% set version = "1.0.2" %}
-{% set sha256 = "ed7c5abaaab3df6bf7f7a5ab8d7b907b730513bd41dd133ce22926948f12c438" %}
+{% set version = "1.0.3" %}
+{% set sha256 = "6a215d10a3d59f5286b5f4634201b46d817edf81d6fde7a3f22a7c47484e06ce" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
 #  `openssl sha256 <file name>`.
@@ -38,6 +38,7 @@ requirements:
     - python
     - xarray
     - pydap
+    - lxml
 
 test:
   imports:
