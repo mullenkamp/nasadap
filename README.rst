@@ -5,6 +5,8 @@ The nasaprecip package contains a class and associated methods/functions to down
 
 At the moment, only the "Final" daily data for both missions are possible to download via the nasaprecip package. I might consider adding in the others (i.e. early/late, subdaily) when properly motivated.
 
+New users must register an account `here <https://urs.earthdata.nasa.gov/users/new>`_ to get a username and password to access the data via nasaprecip.
+
 .. Documentation
 .. --------------
 .. The primary documentation for the package can be found `here <http://hydrointerp.readthedocs.io>`_.
