@@ -48,6 +48,9 @@ class Nasa(object):
         self.session = setup_session(username, password, check_url=self.base_url)
 
     def close(self):
+        """
+        Closes the session.
+        """
         self.session.close()
 
 
