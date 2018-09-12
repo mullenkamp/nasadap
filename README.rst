@@ -52,10 +52,12 @@ At the moment, there is a single class called Nasa that provides access to the d
 
   ge1 = Nasa(username, password, mission1)
   ds1 = ge1.get_data(dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
+  ge1.close()
 
   assert ds1[dataset_type1].shape == (3, 52, 56)
 
   ge2 = Nasa(username, password, mission2)
   ds2 = ge2.get_data(dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
+  ge2.close()
 
   assert ds2[dataset_type2].shape == (3, 130, 140)
