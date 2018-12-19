@@ -1,9 +1,9 @@
-nasaprecip - A Python package for downloading NASA precip missions data
+nasaprecip - A Python package for downloading NASA precipitation missions data
 =======================================================================
 
 The nasaprecip package contains a class and associated methods/functions to download satellite precipitation data from the TRMM and GPM missions and convert them to `xarray <http://xarray.pydata.org>`_ datasets. It uses the python package `pydap <https://pydap.readthedocs.io>`_ to access the OPeNDAP servers with the precipitation data.
 
-At the moment, only the "Final" daily data for both missions are possible to download via the nasaprecip package. I might consider adding in the others (i.e. early/late, subdaily) when properly motivated.
+At the moment, only the "Final" daily data for both missions are possible to download via the nasaprecip package. I will add in the others (i.e. early/late, subdaily) when I get the time. The official list of precipitation products can be found `here <https://pmm.nasa.gov/data-access/downloads/>`_.
 
 New users must register an account `here <https://urs.earthdata.nasa.gov/users/new>`_ to get a username and password to access the data via nasaprecip.
 
@@ -48,6 +48,7 @@ At the moment, there is a single class called Nasa that provides access to the d
   ### Tests
 
   ge1 = Nasa(username, password, mission1, cache_dir)
+  dataset_types = ge1.get_dataset_types()
   ds1 = ge1.get_data(dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
   ge1.close()
 
