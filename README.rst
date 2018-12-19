@@ -7,10 +7,6 @@ At the moment, only the "Final" daily data for both missions are possible to dow
 
 New users must register an account `here <https://urs.earthdata.nasa.gov/users/new>`_ to get a username and password to access the data via nasaprecip.
 
-.. Documentation
-.. --------------
-.. The primary documentation for the package can be found `here <http://hydrointerp.readthedocs.io>`_.
-
 Installation
 ------------
 nasaprecip can be installed via pip or conda::
@@ -46,17 +42,18 @@ At the moment, there is a single class called Nasa that provides access to the d
   max_lat=-34
   min_lon=166
   max_lon=179
+  cache_dir = 'nasa/precip'
 
   ###############################
   ### Tests
 
-  ge1 = Nasa(username, password, mission1)
+  ge1 = Nasa(username, password, mission1, cache_dir)
   ds1 = ge1.get_data(dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
   ge1.close()
 
   assert ds1[dataset_type1].shape == (3, 52, 56)
 
-  ge2 = Nasa(username, password, mission2)
+  ge2 = Nasa(username, password, mission2, cache_dir)
   ds2 = ge2.get_data(dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
   ge2.close()
 
