@@ -11,7 +11,7 @@ New users must register an account `here <https://urs.earthdata.nasa.gov/users/n
 
 Installation
 ------------
-nasaprecip can be installed via pip or conda::
+nasadap can be installed via pip or conda::
 
   pip install nasadap
 
