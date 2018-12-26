@@ -1,23 +1,25 @@
-nasaprecip - A Python package for downloading NASA precipitation missions data
+nasadap - A Python package for downloading NASA data using DAP
 =======================================================================
 
-The nasaprecip package contains a class and associated methods/functions to download satellite precipitation data from the TRMM and GPM missions and convert them to `xarray <http://xarray.pydata.org>`_ datasets. It uses the python package `pydap <https://pydap.readthedocs.io>`_ to access the OPeNDAP servers with the precipitation data.
+The nasadap package contains a class and associated methods/functions to download satellite data and convert them to `xarray <http://xarray.pydata.org>`_ datasets. It uses the python package `pydap <https://pydap.readthedocs.io>`_ to access the NASA `Hyrax <https://docs.opendap.org/index.php/Hyrax>`_ OPeNDAP servers.
 
-At the moment, only the "Final" daily data for both missions are possible to download via the nasaprecip package. I will add in the others (i.e. early/late, subdaily) when I get the time. The official list of precipitation products can be found `here <https://pmm.nasa.gov/data-access/downloads/>`_.
+At the moment, nasadap can only download the satellite precipitation data from the TRMM and GPM missions.
 
-New users must register an account `here <https://urs.earthdata.nasa.gov/users/new>`_ to get a username and password to access the data via nasaprecip.
+Only the "Final" daily data for both missions are possible to download via the nasadap package. I will add in the others (i.e. early/late, subdaily) when I get the time. The official list of precipitation products can be found `here <https://pmm.nasa.gov/data-access/downloads/>`_.
+
+New users must register an account `here <https://urs.earthdata.nasa.gov/users/new>`_ to get a username and password to access the data via nasadap.
 
 Installation
 ------------
 nasaprecip can be installed via pip or conda::
 
-  pip install nasaprecip
+  pip install nasadap
 
 or::
 
-  conda install -c mullenkamp nasaprecip
+  conda install -c mullenkamp nasadap
 
-The core dependencies are `xarray <http://xarray.pydata.org>`_ and `pydap <https://pydap.readthedocs.io>`_.
+The core dependencies are `xarray <http://xarray.pydata.org>`_, `pydap <https://pydap.readthedocs.io>`_, `requests <http://docs.python-requests.org/en/master/>`_, and `beautifulsoup4 <https://www.crummy.com/software/BeautifulSoup/bs4/doc/>`_.
 
 Usage Examples
 --------------
@@ -25,7 +27,7 @@ At the moment, there is a single class called Nasa that provides access to the d
 
 .. code-block:: python
 
-  from nasaprecip import Nasa
+  from nasadap import Nasa
 
   ###############################
   ### Parameters
