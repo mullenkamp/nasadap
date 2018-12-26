@@ -7,10 +7,10 @@ import os
 here = os.path.abspath(os.path.dirname(__file__))
 
 # General parameters
-name = 'nasaprecip'
-main_package = 'nasaprecip'
+name = 'nasadap'
+main_package = 'nasadap'
 # datasets = 'datasets'
-version = '1.0.4'
+version = '1.0.1'
 
 # The below code is for readthedocs. To have sphinx/readthedocs interact with
 # the contained package, readthedocs needs to build the package. But the dependencies
@@ -18,7 +18,7 @@ version = '1.0.4'
 if os.environ.get('READTHEDOCS', False) == 'True':
     INSTALL_REQUIRES = []
 else:
-    INSTALL_REQUIRES = ['xarray', 'pydap', 'lxml']
+    INSTALL_REQUIRES = ['xarray', 'pydap', 'lxml', 'beautifulsoup4']
 
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
@@ -62,7 +62,7 @@ setup(
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#summary
-    description='Class and functions for downloading NASA precip mission data into xarray',  # Required
+    description='Class and functions for downloading NASA data into xarray',  # Required
 
     # This is an optional longer description of your project that represents
     # the body of text which users will see when they visit PyPI.
@@ -78,7 +78,7 @@ setup(
     #
     # This field corresponds to the "Home-Page" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#home-page-optional
-    url='https://github.com/mullenkamp/nasaprecip',  # Optional
+    url='https://github.com/mullenkamp/nasadap',  # Optional
 
     # This should be your name or the name of the organization which owns the
     # project.
@@ -120,7 +120,7 @@ setup(
     # project page. What does your project relate to?
     #
     # Note that this is a string of words separated by whitespace, not a list.
-    keywords='nasa precipitation',  # Optional
+    keywords='nasa data',  # Optional
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().

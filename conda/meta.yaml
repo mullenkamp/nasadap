@@ -1,5 +1,5 @@
-{% set name = "nasaprecip" %}
-{% set version = "1.0.4" %}
+{% set name = "nasadap" %}
+{% set version = "1.0.1" %}
 {% set sha256 = "248e3f4256d9b30351f9d30d82a24e089cb88315e3b5e6ab909b4997f28f7ce4" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
@@ -39,16 +39,17 @@ requirements:
     - xarray
     - pydap
     - lxml
+    - beautifulsoup4
 
 test:
   imports:
-    - nasaprecip
+    - nasadap
 
 about:
-  home: https://github.com/mullenkamp/nasaprecip
+  home: https://github.com/mullenkamp/nasadap
   license: Apache License 2.0
   license_family: APACHE
-  summary: Class and functions for downloading NASA precip mission data into xarray
+  summary: Class and functions for downloading NASA data into xarray
   description: ""
   doc_url: ''
   dev_url: ''
