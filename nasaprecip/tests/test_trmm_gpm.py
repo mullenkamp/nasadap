@@ -67,8 +67,7 @@ print(links)
 
 l1 = links[0]
 
-
-
+def min_max_dates(mission, product):
 
 
 

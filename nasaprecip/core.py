@@ -7,6 +7,9 @@ Created on Wed Sep 12 10:27:09 2018
 import os
 import pandas as pd
 import xarray as xr
+import requests
+import re
+from bs4 import BeautifulSoup
 from pydap.client import open_url
 from pydap.cas.urs import setup_session
 
@@ -20,6 +23,7 @@ gpm_daily_path = '{mission}_{product}.05/{year}/{month}/3B-DAY{run}.MS.MRG.3IMER
 
 trmm_subdaily_path = '{mission}_{product}.7/{year}/{dayofyear}/{product}.{date}.{hour}.7.HDF'
 gpm_subdaily_path = '{mission}_{product}.05/{year}/{dayofyear}/3B-HHR{run}.MS.MRG.3IMERG.{date}-S{time_start}-E{time_end}.{minutes}.V05B.HDF5'
+
 
 class Nasa(object):
     """
@@ -62,6 +66,43 @@ class Nasa(object):
         Closes the session.
         """
         self.session.close()
+
+    def min_max_dates(self):
+        url2 = self.filepath.format(mission=self.mission.upper(), product=product_dict[self.mission]['daily'], year='2016', month='01', date='20160101', run='').split('/')[0]
+        base_url2 = self.base_url + '/' + url2 + '/contents.html'
+
+        page1 = requests.get(base_url2)
+        soup = BeautifulSoup(page1.content)
+
+        years = []
+        for y in soup.findAll('a', attrs={'href': re.compile("/contents.html")}):
+            years.append(y.text[:-1])
+
+        min_year = min(years)
+        max_year = max(years)
+
+        min_base_url = self.base_url + '/' + url2 + '/' + min_year + '/contents.html'
+
+        page2 = requests.get(min_base_url)
+        soup2 = BeautifulSoup(page2.content)
+
+        mons = []
+        for m in soup2.findAll('a', attrs={'href': re.compile("/contents.html")}):
+            mons.append(m.text[:-1])
+        min_mon = min(mons)
+
+        min_base_url2 = self.base_url + '/' + url2 + '/' + min_year + '/' + min_mon + '/contents.html'
+
+        page3 = requests.get(min_base_url2)
+        soup3 = BeautifulSoup(page3.content)
+
+        files = []
+        for f in soup3.findAll('a', attrs={'href': re.compile("nc4.html")}):
+            if f.text != 'html':
+                files.append(f.text[1:-1])
+        file1 = min(files)
+
+        print(url2)
 
 
     def get_dataset_types(self):
