@@ -39,7 +39,6 @@ requirements:
     - xarray
     - pydap
     - lxml
-    - beautifulsoup4
 
 test:
   imports:

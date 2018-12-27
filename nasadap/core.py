@@ -8,26 +8,15 @@ import os
 import pandas as pd
 import xarray as xr
 import requests
-import re
-from bs4 import BeautifulSoup
+from lxml import etree
 from pydap.client import open_url
 from pydap.cas.urs import setup_session
-
-base_url_trmm = 'https://disc2.gesdisc.eosdis.nasa.gov:443/opendap/TRMM_L3'
-base_url_gpm = 'https://gpm1.gesdisc.eosdis.nasa.gov:443/opendap/GPM_L3'
-
-product_dict = {'trmm': {'daily': '3B42_Daily', 'subdaily': '3B42'}, 'gpm': {'daily': '3IMERGDF', 'subdaily': '3IMERGHH'}}
-
-trmm_daily_path = '{mission}_{product}.7/{year}/{month}/{product}.{date}.7.nc4'
-gpm_daily_path = '{mission}_{product}.05/{year}/{month}/3B-DAY{run}.MS.MRG.3IMERG.{date}-S000000-E235959.V05.nc4'
-
-trmm_subdaily_path = '{mission}_{product}.7/{year}/{dayofyear}/{product}.{date}.{hour}.7.HDF'
-gpm_subdaily_path = '{mission}_{product}.05/{year}/{dayofyear}/3B-HHR{run}.MS.MRG.3IMERG.{date}-S{time_start}-E{time_end}.{minutes}.V05B.HDF5'
+from util import min_max_dates, mission_product_dict
 
 
 class Nasa(object):
     """
-    Class to download, select, and convert trmm and gpm data.
+    Class to download, select, and convert NASA data via opendap.
 
     Parameters
     ----------
@@ -36,7 +25,7 @@ class Nasa(object):
     password : str
         The password for the login.
     mission : str
-        Should be either trmm or gpm.
+        Mission name.
     cach_dir : str or None
         A path to cache the netcdf files for future reading or None.
 
@@ -44,22 +33,42 @@ class Nasa(object):
     -------
     Nasa object
     """
-    def __init__(self, username, password, mission, cache_dir=None):
-        if mission == 'trmm':
-            self.base_url = base_url_trmm
-            self.filepath = trmm_daily_path
+    missions_products = {m: list(mission_product_dict[m]['products'].keys()) for m in mission_product_dict}
 
-        elif mission == 'gpm':
-            self.base_url = base_url_gpm
-            self.filepath = gpm_daily_path
+
+    def __init__(self, username, password, mission, cache_dir=None):
+        self.session(username, password, mission, cache_dir)
+
+    def session(self, username, password, mission, cache_dir=None):
+        """
+        Function to initiate a dap session.
+
+        Parameters
+        ----------
+        username : str
+            The username for the login.
+        password : str
+            The password for the login.
+        mission : str
+            Mission name.
+        cach_dir : str or None
+            A path to cache the netcdf files for future reading or None.
+
+        Returns
+        -------
+        Nasa object
+        """
+        if mission in mission_product_dict:
+            self.mission_dict = mission_product_dict[mission]
         else:
-            raise ValueError('mission should be either trmm or gpm')
+            raise ValueError('mission should be one of: ' + ', '.join(mission_product_dict.keys()))
 
         self.mission = mission
 
         self.cache_dir = cache_dir
 
-        self.session = setup_session(username, password, check_url=self.base_url)
+        self.session = setup_session(username, password, check_url='/'.join([self.mission_dict['base_url'], 'opendap',  self.mission_dict['process_level']]))
+
 
     def close(self):
         """
@@ -67,57 +76,17 @@ class Nasa(object):
         """
         self.session.close()
 
-    def min_max_dates(self):
-        url2 = self.filepath.format(mission=self.mission.upper(), product=product_dict[self.mission]['daily'], year='2016', month='01', date='20160101', run='').split('/')[0]
-        base_url2 = self.base_url + '/' + url2 + '/contents.html'
-
-        page1 = requests.get(base_url2)
-        soup = BeautifulSoup(page1.content)
-
-        years = []
-        for y in soup.findAll('a', attrs={'href': re.compile("/contents.html")}):
-            years.append(y.text[:-1])
-
-        min_year = min(years)
-        max_year = max(years)
-
-        min_base_url = self.base_url + '/' + url2 + '/' + min_year + '/contents.html'
-
-        page2 = requests.get(min_base_url)
-        soup2 = BeautifulSoup(page2.content)
-
-        mons = []
-        for m in soup2.findAll('a', attrs={'href': re.compile("/contents.html")}):
-            mons.append(m.text[:-1])
-        min_mon = min(mons)
-
-        min_base_url2 = self.base_url + '/' + url2 + '/' + min_year + '/' + min_mon + '/contents.html'
-
-        page3 = requests.get(min_base_url2)
-        soup3 = BeautifulSoup(page3.content)
-
-        files = []
-        for f in soup3.findAll('a', attrs={'href': re.compile("nc4.html")}):
-            if f.text != 'html':
-                files.append(f.text[1:-1])
-        file1 = min(files)
-
-        print(url2)
-
 
     def get_dataset_types(self):
         """
-        Function to get all of the dataset types and associates attributes.
+        Function to get all of the dataset types and associated attributes for a mission.
 
         Returns
         -------
         dict
             of dataset types as the keys
         """
-        url2 = self.filepath.format(mission=self.mission.upper(), product=product_dict[self.mission]['daily'], year='2016', month='01', date='20160101', run='')
-        url3 = self.base_url + '/' + url2
-
-        dataset = open_url(url3, session=self.session)
+        dataset = open_url(self.mission_dict['example_path'], session=self.session)
 
         dataset_dict = {}
         for i in dataset:
@@ -126,18 +95,20 @@ class Nasa(object):
         return dataset_dict
 
 
-    def get_data(self, dataset_types, from_date, to_date, min_lat=None, max_lat=None, min_lon=None, max_lon=None):
+    def get_data(self, product, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None):
         """
         Function to download trmm or gpm data and convert it to an xarray dataset.
 
         Parameters
         ----------
+        product : str
+            Data product associated with the mission.
         dataset_types : str or list of str
             The dataset types variable to be extracted.
-        from_date : str
-            The start date
-        to_date : str
-            The end date
+        from_date : str or None
+            The start date that you want data in the format 2000-01-01.
+        to_date : str or None
+            The end date that you want data in the format 2000-01-01.
         min_lat : int, float, or None
             The minimum lat to extract in WGS84 decimal degrees.
         max_lat : int, float, or None
@@ -152,37 +123,85 @@ class Nasa(object):
         xarray dataset
             Coordinates are time, lon, lat
         """
+        if product not in self.mission_dict['products']:
+            raise ValueError('product must be one of: ' + ', '.join(self.mission_dict['products'].keys()))
+        else:
+            product_dict = self.mission_dict['products']
+            file_path1 = product_dict[product]
+            file_path = os.path.split(file_path1)[0]
+
         if isinstance(dataset_types, str):
             dataset_types = [dataset_types]
+
+        min_max = min_max_dates(self.mission, product)
+        min_date = min_max['start_date'][0]
+        max_date = min_max['end_date'][0]
+
+        if isinstance(from_date, str):
+            from_date = pd.Timestamp(from_date)
+            if min_date > from_date:
+                from_date = min_date
+        else:
+            from_date = min_date
+        if isinstance(to_date, str):
+            to_date = pd.Timestamp(to_date)
+            if max_date < to_date:
+                to_date = max_date
+        else:
+            to_date = max_date
+
         dates = pd.date_range(from_date, to_date)
 
-        urls2 = [self.filepath.format(mission=self.mission.upper(), product=product_dict[self.mission]['daily'], year=i.strftime('%Y'), month=i.strftime('%m'), date=i.strftime('%Y%m%d'), run='') for i in dates]
+        base_url = self.mission_dict['base_url']
 
+        if 'dayofyear' in file_path:
+            print('Parsing file list from NASA server...')
+            url_list = []
+            for d in dates:
+                path1 = file_path.format(mission=self.mission.upper(), product=product, year=d.year, dayofyear=d.dayofyear)
+                path2 = '/'.join([self.mission_dict['process_level'], path1])
+                url1 = '/'.join([base_url, 'opendap', path2, 'catalog.xml'])
+                page1 = requests.get(url1)
+                et = etree.fromstring(page1.content)
+                urls2 = [base_url + c.attrib['ID'] for c in et.getchildren()[2].getchildren()]
+                url_list.extend(urls2)
+        if 'month' in file_path:
+            print('Generating urls...')
+            url_list = ['/'.join([base_url, 'opendap', self.mission_dict['process_level'],  file_path1.format(mission=self.mission.upper(), product=product, year=d.year, month=d.month, date=d.strftime('%Y%m%d'))]) for d in dates]
+
+        url_dict = {u: self.mission_dict['process_level'] + u.split(self.mission_dict['process_level'])[1] for u in url_list}
         if isinstance(self.cache_dir, str):
-            save_dirs = set([os.path.join(self.cache_dir, os.path.split(s)[0]) for s in urls2])
+            for_cache = [os.path.split(u)[0] for u in set(url_dict.values())]
+            save_dirs = [os.path.join(self.cache_dir, paths) for paths in for_cache]
             for path in save_dirs:
                 if not os.path.exists(path):
                     os.makedirs(path)
 
+        print('Reading files...')
         ds_list = []
-        for u in urls2:
+        for u, u0 in url_dict.items():
             try:
-                u1 = os.path.join(self.cache_dir, u)
+                u1 = os.path.join(self.cache_dir, u0)
                 ds = xr.open_dataset(u1)
                 ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
                 print('Found local file')
             except:
-                print('Downloading from web')
-                u1 = self.base_url + '/' + u
+                print('Downloading from web...')
+                u1 = u
                 store = xr.backends.PydapDataStore.open(u1, session=self.session)
                 ds = xr.open_dataset(store)
+                if 'nlon' in ds:
+                    ds.rename({'nlon': 'lon', 'nlat': 'lat'}, inplace=True)
                 ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
 
                 lat = ds2.lat.values
                 lon = ds2.lon.values
 
                 for ar in ds2.data_vars:
-                    da1 = xr.DataArray(ds2[ar].values.reshape(1, len(lon), len(lat)), coords=[[pd.Timestamp(ds2.attrs['BeginDate'])], lon, lat], dims=['time', 'lon', 'lat'], name=ar)
+                    ds_date1 = ds.attrs['FileHeader'].split(';\n')
+                    ds_date2 = dict([t.split('=') for t in ds_date1 if t != ''])
+                    ds_date = pd.to_datetime(ds_date2['StopGranuleDateTime'])
+                    da1 = xr.DataArray(ds2[ar].values.reshape(1, len(lon), len(lat)), coords=[[ds_date], lon, lat], dims=['time', 'lon', 'lat'], name=ar)
                     da1.attrs = ds2[ar].attrs
                     ds2[ar] = da1
 
@@ -190,7 +209,7 @@ class Nasa(object):
 
             ## Save data as cache
             if isinstance(self.cache_dir, str):
-                u2 = os.path.join(self.cache_dir, u)
+                u2 = os.path.join(self.cache_dir, u0)
                 if not os.path.isfile(u2):
                     print('Saving data')
                     ds2.to_netcdf(u2)
