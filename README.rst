@@ -48,6 +48,8 @@ The spatial resolution is  0.1° x 0.1° (~10 km).
 
 The dataset that most people would want is called "precipitationCal".
 
+**NOTE:** According to the `official TRMM docs <https://docserver.gesdisc.eosdis.nasa.gov/public/project/GPM/README.TRMM.pdf>`_ under B-9, NASA will be reprocessing the TRMM data back until 2000 using the GPM IMERG V05 algorithm for consistency across the two mission's products. This will be integrated into nasadap once it's up.
+
 .. [2] George Huffman (2017), GPM IMERG Final Precipitation L3 Half Hourly 0.1 degree x 0.1 degree V05, Greenbelt, MD, Goddard Earth Sciences Data and Information Services Center (GES DISC), Accessed: 2018-12-28, `10.5067/GPM/IMERG/3B-HH/05 <https://doi.org/10.5067/GPM/IMERG/3B-HH/05>`_
 
 Usage Examples

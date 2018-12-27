@@ -103,19 +103,19 @@ def test_gpm3():
 def test_gpm4():
     ds2 = ge.get_data(product2d, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds2[dataset_type2].shape == (6, 130, 140)
+    assert ds2[dataset_type2].shape == (192, 150, 160)
 
 
 def test_gpm5():
     ds2 = ge.get_data(product2e, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds2[dataset_type2].shape == (6, 130, 140)
+    assert ds2[dataset_type2].shape == (192, 150, 160)
 
 
 def test_gpm6():
     ds2 = ge.get_data(product2f, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds2[dataset_type2].shape == (6, 130, 140)
+    assert ds2[dataset_type2].shape == (192, 150, 160)
 
 ge.close()
 
