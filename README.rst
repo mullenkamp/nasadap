@@ -58,7 +58,7 @@ At the moment, there is a single class called NASA that provides access to the d
 
 .. code-block:: python
 
-  from nasadap import Nasa
+  from nasadap import Nasa, min_max_dates
 
   ###############################
   ### Parameters
@@ -67,24 +67,28 @@ At the moment, there is a single class called NASA that provides access to the d
   password = '' # Need to change!
   mission1 = 'trmm'
   mission2 = 'gpm'
-  from_date = '2018-01-01'
-  to_date = '2018-01-03'
+  from_date = '2018-01-30'
+  to_date = '2018-02-02'
+  product1 = '3B42_Daily'
+  product2 = '3IMERGDF'
   dataset_type1 = 'precipitation'
   dataset_type2 = 'precipitationCal'
-  min_lat=-48
-  max_lat=-34
-  min_lon=166
-  max_lon=179
+  min_lat=-49
+  max_lat=-33
+  min_lon=165
+  max_lon=180
   cache_dir = 'nasa/precip'
 
   ###############################
   ### Tests
 
+  min_max = min_max_dates(mission1) # Will give you the min and max available dates for products
+
   ge1 = Nasa(username, password, mission1, cache_dir)
   dataset_types = ge1.get_dataset_types()
-  ds1 = ge1.get_data(dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
+  ds1 = ge1.get_data(product1, dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
   ge1.close()
 
   ge2 = Nasa(username, password, mission2, cache_dir)
-  ds2 = ge2.get_data(dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
+  ds2 = ge2.get_data(product2, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
   ge2.close()
