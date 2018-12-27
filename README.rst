@@ -25,7 +25,7 @@ Mission and product descriptions
 --------------------------------
 Tropical Rainfall Measuring Mission (TRMM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-A full description and documentation of the TRMM can be found on the `NASA site <https://doi.org/10.5067/TRMM/TMPA/3H/7>`_ [1].
+A full description and documentation of the TRMM can be found on the `NASA TRMM site <https://doi.org/10.5067/TRMM/TMPA/3H/7>`_ [1].
 "This dataset is the output from the TMPA (TRMM Multi-satellite Precipitation) Algorithm, and provides precipitation estimates in the TRMM regions that have the (nearly-zero) bias of the ”TRMM Combined Instrument” precipitation estimate and the dense sampling of high-quality microwave data with fill-in using microwave-calibrated infrared estimates. The granule size is 3 hours."
 
 This dataset has two downloadable products: The core 3 hour product (3B42) and the daily aggregate (3B42_Daily). The spatial resolution is  0.25° x 0.25° (~25 km).
@@ -36,7 +36,7 @@ The dataset that most people would want is called "precipitation".
 
 Global Precipitation Mission (GPM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-A full description and documentation of the GPM can be found on the `NASA site <https://doi.org/10.5067/GPM/IMERG/3B-HH/05>`_ [2].
+A full description and documentation of the GPM can be found on the `NASA GPM site <https://doi.org/10.5067/GPM/IMERG/3B-HH/05>`_ [2].
 "The Integrated Multi-satellitE Retrievals for GPM (IMERG) is the unified U.S. algorithm that provides the Day-1 multi-satellite precipitation product for the U.S. GPM team.
 
 The precipitation estimates from the various precipitation-relevant satellite passive microwave (PMW) sensors comprising the GPM constellation are computed using the 2014 version of the Goddard Profiling Algorithm (GPROF2014), then gridded, intercalibrated to the GPM Combined Instrument product, and combined into half-hourly 10x10 km fields."
