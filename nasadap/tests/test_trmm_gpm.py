@@ -122,16 +122,16 @@ ge.close()
 #################################
 ### Other
 
-hdf1 = 'https://disc2.gesdisc.eosdis.nasa.gov:443/opendap/TRMM_L3/TRMM_3B42.7/1998/002/3B42.19980102.03.7.HDF'
-nc1 = 'https://disc2.gesdisc.eosdis.nasa.gov:443/opendap/TRMM_L3/TRMM_3B42_Daily.7/1998/01/3B42_Daily.19980101.7.nc4'
-nc2 = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap/hyrax/GPM_L3/GPM_3IMERGDF.05/2014/03/3B-DAY.MS.MRG.3IMERG.20140312-S000000-E235959.V05.nc4'
-hdf2 = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap/hyrax/GPM_L3/GPM_3IMERGHH.05/2014/071/3B-HHR.MS.MRG.3IMERG.20140312-S000000-E002959.0000.V05B.HDF5'
-
-store = xr.backends.PydapDataStore.open(hdf1, session=ge.session)
-ds = xr.open_dataset(store)
-
-t1 = ds.attrs['FileHeader'].split(';\n')
-t2 = dict([t.split('=') for t in t1 if t != ''])
+#hdf1 = 'https://disc2.gesdisc.eosdis.nasa.gov:443/opendap/TRMM_L3/TRMM_3B42.7/1998/002/3B42.19980102.03.7.HDF'
+#nc1 = 'https://disc2.gesdisc.eosdis.nasa.gov:443/opendap/TRMM_L3/TRMM_3B42_Daily.7/1998/01/3B42_Daily.19980101.7.nc4'
+#nc2 = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap/hyrax/GPM_L3/GPM_3IMERGDF.05/2014/03/3B-DAY.MS.MRG.3IMERG.20140312-S000000-E235959.V05.nc4'
+#hdf2 = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap/hyrax/GPM_L3/GPM_3IMERGHH.05/2014/071/3B-HHR.MS.MRG.3IMERG.20140312-S000000-E002959.0000.V05B.HDF5'
+#
+#store = xr.backends.PydapDataStore.open(hdf1, session=ge.session)
+#ds = xr.open_dataset(store)
+#
+#t1 = ds.attrs['FileHeader'].split(';\n')
+#t2 = dict([t.split('=') for t in t1 if t != ''])
 
 
 
