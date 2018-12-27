@@ -54,7 +54,7 @@ The dataset that most people would want is called "precipitationCal".
 
 Usage Examples
 --------------
-At the moment, there is a single class called NASA that provides access to the data.
+At the moment, there is a single class called NASA that provides access to the data. It's highly recommended to use a cache directory as NASA's Hyrax server is a bit slow.
 
 .. code-block:: python
 
