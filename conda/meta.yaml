@@ -1,6 +1,6 @@
 {% set name = "nasadap" %}
 {% set version = "1.0.1" %}
-{% set sha256 = "248e3f4256d9b30351f9d30d82a24e089cb88315e3b5e6ab909b4997f28f7ce4" %}
+{% set sha256 = "fbd048bce573df0740cd7485883469bdc66f7bea9c968afe592f844bb66cfccd" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
 #  `openssl sha256 <file name>`.
@@ -39,6 +39,7 @@ requirements:
     - xarray
     - pydap
     - lxml
+    - requests
 
 test:
   imports:

@@ -6,7 +6,7 @@ Created on Wed May  9 15:12:14 2018
 """
 import pytest
 import xarray as xr
-from nasaprecip import Nasa
+from nasadap import Nasa
 
 ###############################
 ### Parameters
