@@ -5,9 +5,10 @@ The nasadap package contains a class and associated methods/functions to downloa
 
 At the moment, nasadap can only download the satellite precipitation data from the TRMM and GPM missions.
 
-Only the "Final" daily data for both missions are possible to download via the nasadap package. I will add in the others (i.e. early/late, subdaily) when I get the time. The official list of precipitation products can be found `here <https://pmm.nasa.gov/data-access/downloads/>`_.
+The official list of precipitation products can be found `here <https://pmm.nasa.gov/data-access/downloads/>`_.
+The products available via nasadap are described below.
 
-New users must register an account `here <https://urs.earthdata.nasa.gov/users/new>`_ to get a username and password to access the data via nasadap.
+New users must register an account with `Earthdata <https://urs.earthdata.nasa.gov/users/new>`_ to get a username and password to access any NASA data. Then `register <https://disc.gsfc.nasa.gov/earthdata-login>`_ the "app" once logged in. More details on general data access can be found on the `Eathdata wiki <https://wiki.earthdata.nasa.gov/display/EL/Earthdata+Login+Knowledge+Base>`_.
 
 Installation
 ------------

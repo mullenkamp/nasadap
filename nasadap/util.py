@@ -69,7 +69,7 @@ def min_max_dates(missions=None, products=None):
 
     for m1 in missions:
         base_url = '/'.join([mission_product_dict[m1]['base_url'], 'opendap',  mission_product_dict[m1]['process_level']])
-        print(base_url)
+#        print(base_url)
         if products is None:
             product_dict = mission_product_dict[m1]['products']
         else:
