@@ -5,6 +5,7 @@ Created on Wed May  9 15:12:14 2018
 @author: MichaelEK
 """
 import pytest
+import xarray as xr
 from nasadap import Nasa
 
 ###############################
@@ -132,7 +133,26 @@ ge.close()
 #t1 = ds.attrs['FileHeader'].split(';\n')
 #t2 = dict([t.split('=') for t in t1 if t != ''])
 
-
+#ds3 = xr.Dataset(coords={'time': [], 'lat': [], 'lon': []})
+#ds3 = xr.Dataset()
+#
+#ds3.to_netcdf(t1, unlimited_dims='time')
+#
+#ds3 = ds2.copy()
+#
+#ds3['time'] = ds3.time.to_series() + pd.DateOffset(days=2)
+#
+#with xr.open_mfdataset(t1) as ds:
+#    print(ds)
+##    ds4 = xr.concat([ds2, ds], dim='time')
+#    ds4 = ds.combine_first(ds2)
+#    ds5 = ds4.combine_first(ds3)
+##    ds4 = xr.merge([ds, ds2])
+##    ds5 = xr.merge([ds4, ds2])
+#    print(ds5)
+#
+#ds4.to_netcdf(t1, mode='a', unlimited_dims='time')
+#ds5.to_netcdf(t1, mode='a', unlimited_dims='time')
 
 
 

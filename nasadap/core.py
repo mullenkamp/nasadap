@@ -8,6 +8,7 @@ import os
 import pandas as pd
 import xarray as xr
 import requests
+from time import sleep
 from lxml import etree
 from pydap.client import open_url
 from pydap.cas.urs import setup_session
@@ -100,7 +101,7 @@ class Nasa(object):
         return dataset_dict
 
 
-    def get_data(self, product, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None):
+    def get_data(self, product, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None, only_cache=False):
         """
         Function to download trmm or gpm data and convert it to an xarray dataset.
 
@@ -122,6 +123,8 @@ class Nasa(object):
             The minimum lon to extract in WGS84 decimal degrees.
         max_lon : int, float, or None
             The maximum lon to extract in WGS84 decimal degrees.
+        only_cache : bool
+            Only cache the downloaded files rather than concat and return an xarray dataset. Returns a list of files saved.
 
         Returns
         -------
@@ -213,7 +216,9 @@ class Nasa(object):
                         ds = xr.open_dataset(store)
                         counter = 0
                     except:
+                        print('url request failed...trying again in 3 seconds.')
                         counter = counter - 1
+                        sleep(3)
 
                 if 'nlon' in ds:
                     ds.rename({'nlon': 'lon', 'nlat': 'lat'}, inplace=True)
@@ -237,8 +242,14 @@ class Nasa(object):
                         print(u0)
                         ds2.to_netcdf(u0)
 
-                ds_list.append(ds2)
+                if only_cache:
+                    ds_list.extend(u0)
+                else:
+                    ds_list.append(ds2)
 
-        ds_all = xr.concat(ds_list, dim='time')
+        if only_cache:
+            ds_all = ds_list
+        else:
+            ds_all = xr.concat(ds_list, dim='time')
 
         return ds_all
