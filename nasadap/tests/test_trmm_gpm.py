@@ -5,7 +5,6 @@ Created on Wed May  9 15:12:14 2018
 @author: MichaelEK
 """
 import pytest
-import xarray as xr
 from nasadap import Nasa
 
 ###############################
@@ -31,7 +30,7 @@ min_lat=-49
 max_lat=-33
 min_lon=165
 max_lon=180
-cache_dir = r'E:\ecan\local\temp\nasa'
+cache_dir = r'\\fs02\GroundWaterMetData$\nasa\cache\nz'
 
 ###############################
 ### Tests

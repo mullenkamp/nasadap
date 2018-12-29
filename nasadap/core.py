@@ -11,7 +11,9 @@ import requests
 from lxml import etree
 from pydap.client import open_url
 from pydap.cas.urs import setup_session
-from nasadap.util import min_max_dates, mission_product_dict
+from util import min_max_dates, mission_product_dict
+
+#from nasadap.util import min_max_dates, mission_product_dict
 
 
 class Nasa(object):
@@ -27,7 +29,7 @@ class Nasa(object):
     mission : str
         Mission name.
     cach_dir : str or None
-        A path to cache the netcdf files for future reading or None.
+        A path to cache the netcdf files for future reading. If None, the currently working directory is used.
 
     Returns
     -------
@@ -52,7 +54,7 @@ class Nasa(object):
         mission : str
             Mission name.
         cach_dir : str or None
-            A path to cache the netcdf files for future reading or None.
+            A path to cache the netcdf files for future reading. If None, the currently working directory is used.
 
         Returns
         -------
@@ -65,7 +67,12 @@ class Nasa(object):
 
         self.mission = mission
 
-        self.cache_dir = cache_dir
+        if isinstance(cache_dir, str):
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
+            self.cache_dir = cache_dir
+        else:
+            self.cache_dir = os.getcwd()
 
         self.session = setup_session(username, password, check_url='/'.join([self.mission_dict['base_url'], 'opendap',  self.mission_dict['process_level']]))
 
@@ -130,6 +137,8 @@ class Nasa(object):
             file_path1 = product_dict[product]
             file_path = os.path.split(file_path1)[0]
 
+        version = self.mission_dict['version']
+
         if isinstance(dataset_types, str):
             dataset_types = [dataset_types]
 
@@ -156,42 +165,58 @@ class Nasa(object):
 
         base_url = self.mission_dict['base_url']
 
-        if 'dayofyear' in file_path:
+        if 'dayofyear' in file_path1:
             print('Parsing file list from NASA server...')
+            file_path = os.path.split(file_path1)[0]
             url_list = []
             for d in dates:
-                path1 = file_path.format(mission=self.mission.upper(), product=product, year=d.year, dayofyear=d.dayofyear)
+                path1 = file_path.format(mission=self.mission.upper(), product=product, year=d.year, dayofyear=d.dayofyear, version=version)
                 path2 = '/'.join([self.mission_dict['process_level'], path1])
                 url1 = '/'.join([base_url, 'opendap', path2, 'catalog.xml'])
                 page1 = requests.get(url1)
                 et = etree.fromstring(page1.content)
                 urls2 = [base_url + c.attrib['ID'] for c in et.getchildren()[2].getchildren()]
                 url_list.extend(urls2)
-        if 'month' in file_path:
+        if 'month' in file_path1:
             print('Generating urls...')
-            url_list = ['/'.join([base_url, 'opendap', self.mission_dict['process_level'],  file_path1.format(mission=self.mission.upper(), product=product, year=d.year, month=d.month, date=d.strftime('%Y%m%d'))]) for d in dates]
+            url_list = ['/'.join([base_url, 'opendap', self.mission_dict['process_level'],  file_path1.format(mission=self.mission.upper(), product=product, year=d.year, month=d.month, date=d.strftime('%Y%m%d'), version=version)]) for d in dates]
 
-        url_dict = {u: self.mission_dict['process_level'] + u.split(self.mission_dict['process_level'])[1] for u in url_list}
-        if isinstance(self.cache_dir, str):
-            for_cache = [os.path.split(u)[0] for u in set(url_dict.values())]
-            save_dirs = [os.path.join(self.cache_dir, paths) for paths in for_cache]
-            for path in save_dirs:
-                if not os.path.exists(path):
-                    os.makedirs(path)
+        if 'hyrax' in url_list[0]:
+            split_text = 'hyrax/'
+        else:
+            split_text = 'opendap/'
+        url_dict = {u: os.path.join(self.cache_dir, os.path.splitext(u.split(split_text)[1])[0] + '.nc4') for u in url_list}
 
-        print('Reading files...')
+        save_dirs = set([os.path.split(u)[0] for u in url_dict.values()])
+        for path in save_dirs:
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+        print('Checking if files exist locally...')
+        local_dict = {url: local for url, local in url_dict.items() if os.path.isfile(local)}
+        remote_dict = {url: local for url, local in url_dict.items() if url in set(url_dict) - set(local_dict)}
+
         ds_list = []
-        for u, u0 in url_dict.items():
-            try:
-                u1 = os.path.join(self.cache_dir, u0)
-                ds = xr.open_dataset(u1)
-                ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
-                print('Found local file')
-            except:
-                print('Downloading from web...')
-                u1 = u
-                store = xr.backends.PydapDataStore.open(u1, session=self.session)
-                ds = xr.open_dataset(store)
+        if local_dict:
+            print('Reading local files...')
+            ds = xr.open_mfdataset(list(local_dict.values()), concat_dim='time')
+            ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+            ds_list.append(ds2)
+
+        if remote_dict:
+            print('Downloading files from NASA...')
+            for u, u0 in remote_dict.items():
+                print('Downloading...')
+                print(u)
+                counter = 5
+                while counter > 0:
+                    try:
+                        store = xr.backends.PydapDataStore.open(u, session=self.session)
+                        ds = xr.open_dataset(store)
+                        counter = 0
+                    except:
+                        counter = counter - 1
+
                 if 'nlon' in ds:
                     ds.rename({'nlon': 'lon', 'nlat': 'lat'}, inplace=True)
                 ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
@@ -207,16 +232,14 @@ class Nasa(object):
                     da1.attrs = ds2[ar].attrs
                     ds2[ar] = da1
 
-            print(u1)
+                ## Save data as cache
+                if isinstance(self.cache_dir, str):
+                    if not os.path.isfile(u0):
+                        print('Saving data to...')
+                        print(u0)
+                        ds2.to_netcdf(u0)
 
-            ## Save data as cache
-            if isinstance(self.cache_dir, str):
-                u2 = os.path.join(self.cache_dir, u0)
-                if not os.path.isfile(u2):
-                    print('Saving data')
-                    ds2.to_netcdf(u2)
-
-            ds_list.append(ds2)
+                ds_list.append(ds2)
 
         ds_all = xr.concat(ds_list, dim='time')
 
