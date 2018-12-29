@@ -11,9 +11,7 @@ import requests
 from lxml import etree
 from pydap.client import open_url
 from pydap.cas.urs import setup_session
-from util import min_max_dates, mission_product_dict
-
-#from nasadap.util import min_max_dates, mission_product_dict
+from nasadap.util import min_max_dates, mission_product_dict
 
 
 class Nasa(object):

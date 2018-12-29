@@ -1,6 +1,6 @@
 {% set name = "nasadap" %}
-{% set version = "1.0.6" %}
-{% set sha256 = "f79e24f6fb9297e6cff912d34c567bc110918d5c5f1b3a786c131ca00a90dc42" %}
+{% set version = "1.0.7" %}
+{% set sha256 = "2fe7ec69eae1531eb017a70af30c2cec2caa7854f077ba0a9d9fec5281c8107b" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
 #  `openssl sha256 <file name>`.
@@ -42,7 +42,6 @@ requirements:
     - requests
     - dask
     - netCDF4
-    - bottleneck
 
 test:
   imports:
