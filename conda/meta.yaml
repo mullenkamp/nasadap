@@ -1,6 +1,6 @@
 {% set name = "nasadap" %}
-{% set version = "1.0.8" %}
-{% set sha256 = "9aef2426578ee016371f0265ea35ff84e762c6b1979a1c8ba4966e17288ed38b" %}
+{% set version = "1.1.0" %}
+{% set sha256 = "5d92f00c0a2668fab37a3fbc88c171b968cf8bc7f0721e8840192618ee5f923f" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
 #  `openssl sha256 <file name>`.

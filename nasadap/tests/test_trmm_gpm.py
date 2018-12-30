@@ -6,7 +6,8 @@ Created on Wed May  9 15:12:14 2018
 """
 import pytest
 import xarray as xr
-from nasadap import Nasa
+from nasadap import Nasa, min_max_dates
+from time import time
 
 ###############################
 ### Parameters
@@ -23,8 +24,8 @@ product2c = '3IMERGDF'
 product2d = '3IMERGHHE'
 product2e = '3IMERGHHL'
 product2f = '3IMERGHH'
-from_date = '2018-01-31'
-to_date = '2018-02-01'
+from_date = '2018-01-01'
+to_date = '2018-02-28'
 dataset_type1 = 'precipitation'
 dataset_type2 = 'precipitationCal'
 min_lat=-49
@@ -154,8 +155,13 @@ ge.close()
 #ds4.to_netcdf(t1, mode='a', unlimited_dims='time')
 #ds5.to_netcdf(t1, mode='a', unlimited_dims='time')
 
+ge = Nasa(username, password, mission1, cache_dir)
 
+start1 = time()
+ds1 = ge.get_data(product1a, dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon, dl_sim_count=65)
+end1 = time()
 
+diff1 = end1 - start1
 
 
 

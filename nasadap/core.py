@@ -10,9 +10,61 @@ import xarray as xr
 import requests
 from time import sleep
 from lxml import etree
+import itertools
+from multiprocessing.pool import ThreadPool
 from pydap.client import open_url
 from pydap.cas.urs import setup_session
 from nasadap.util import min_max_dates, mission_product_dict
+
+
+def download_files(url, path, session, dataset_types, min_lat, max_lat, min_lon, max_lon):
+    print('Downloading and saving to...')
+    print(path)
+#    print(url)
+    counter = 5
+    while counter > 0:
+        try:
+            store = xr.backends.PydapDataStore.open(url, session=session)
+            ds = xr.open_dataset(store)
+            counter = 0
+        except:
+            print('url request failed...trying again in 3 seconds.')
+            counter = counter - 1
+            sleep(3)
+
+    if 'nlon' in ds:
+        ds.rename({'nlon': 'lon', 'nlat': 'lat'}, inplace=True)
+    ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+
+    lat = ds2.lat.values
+    lon = ds2.lon.values
+
+    for ar in ds2.data_vars:
+        ds_date1 = ds.attrs['FileHeader'].split(';\n')
+        ds_date2 = dict([t.split('=') for t in ds_date1 if t != ''])
+        ds_date = pd.to_datetime(ds_date2['StopGranuleDateTime'])
+        da1 = xr.DataArray(ds2[ar].values.reshape(1, len(lon), len(lat)), coords=[[ds_date], lon, lat], dims=['time', 'lon', 'lat'], name=ar)
+        da1.attrs = ds2[ar].attrs
+        ds2[ar] = da1
+
+    ## Save data as cache
+    if not os.path.isfile(path):
+#        print('Saving data to...')
+#        print(path)
+        ds2.to_netcdf(path)
+
+    return ds2
+
+
+def parse_dap_xml(date, file_path, mission, product, version, process_level, base_url):
+    path1 = file_path.format(mission=mission.upper(), product=product, year=date.year, dayofyear=date.dayofyear, version=version)
+    path2 = '/'.join([process_level, path1])
+    url1 = '/'.join([base_url, 'opendap', path2, 'catalog.xml'])
+    page1 = requests.get(url1)
+    et = etree.fromstring(page1.content)
+    urls2 = [base_url + c.attrib['ID'] for c in et.getchildren()[2].getchildren()]
+    return urls2
+
 
 
 class Nasa(object):
@@ -101,7 +153,7 @@ class Nasa(object):
         return dataset_dict
 
 
-    def get_data(self, product, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None, only_cache=False):
+    def get_data(self, product, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None, dl_sim_count=30, check_local=True):
         """
         Function to download trmm or gpm data and convert it to an xarray dataset.
 
@@ -123,8 +175,10 @@ class Nasa(object):
             The minimum lon to extract in WGS84 decimal degrees.
         max_lon : int, float, or None
             The maximum lon to extract in WGS84 decimal degrees.
-        only_cache : bool
-            Only cache the downloaded files rather than concat and return an xarray dataset. Returns a list of files saved.
+        dl_sim_count : int
+            The number of simultaneous downloads on a single thread. Speed could be increase with more simultaneous downloads, but up to a limit of the PC's single thread speed.
+        check_local : bool
+            Should the local files be checked and read? Pass False if you only want to download files and not check for local files. Any local files will be overwritten!
 
         Returns
         -------
@@ -169,15 +223,10 @@ class Nasa(object):
         if 'dayofyear' in file_path1:
             print('Parsing file list from NASA server...')
             file_path = os.path.split(file_path1)[0]
-            url_list = []
-            for d in dates:
-                path1 = file_path.format(mission=self.mission.upper(), product=product, year=d.year, dayofyear=d.dayofyear, version=version)
-                path2 = '/'.join([self.mission_dict['process_level'], path1])
-                url1 = '/'.join([base_url, 'opendap', path2, 'catalog.xml'])
-                page1 = requests.get(url1)
-                et = etree.fromstring(page1.content)
-                urls2 = [base_url + c.attrib['ID'] for c in et.getchildren()[2].getchildren()]
-                url_list.extend(urls2)
+            iter2 = [(date, file_path, self.mission, product, version, self.mission_dict['process_level'], base_url) for date in dates]
+            url_list1 = ThreadPool(30).starmap(parse_dap_xml, iter2)
+            url_list = list(itertools.chain.from_iterable(url_list1))
+
         if 'month' in file_path1:
             print('Generating urls...')
             url_list = ['/'.join([base_url, 'opendap', self.mission_dict['process_level'],  file_path1.format(mission=self.mission.upper(), product=product, year=d.year, month=d.month, date=d.strftime('%Y%m%d'), version=version)]) for d in dates]
@@ -193,63 +242,32 @@ class Nasa(object):
             if not os.path.exists(path):
                 os.makedirs(path)
 
-        print('Checking if files exist locally...')
-        local_dict = {url: local for url, local in url_dict.items() if os.path.isfile(local)}
-        remote_dict = {url: local for url, local in url_dict.items() if url in set(url_dict) - set(local_dict)}
+        if check_local:
+            print('Checking if files exist locally...')
+            local_dict = {url: local for url, local in url_dict.items() if os.path.isfile(local)}
+            remote_dict = {url: local for url, local in url_dict.items() if url in set(url_dict) - set(local_dict)}
+        else:
+            local_dict = {}
+            remote_dict = url_dict.copy()
 
         ds_list = []
         if local_dict:
             print('Reading local files...')
             ds = xr.open_mfdataset(list(local_dict.values()), concat_dim='time')
             ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+            ds.close()
             ds_list.append(ds2)
 
         if remote_dict:
             print('Downloading files from NASA...')
-            for u, u0 in remote_dict.items():
-                print('Downloading...')
-                print(u)
-                counter = 5
-                while counter > 0:
-                    try:
-                        store = xr.backends.PydapDataStore.open(u, session=self.session)
-                        ds = xr.open_dataset(store)
-                        counter = 0
-                    except:
-                        print('url request failed...trying again in 3 seconds.')
-                        counter = counter - 1
-                        sleep(3)
 
-                if 'nlon' in ds:
-                    ds.rename({'nlon': 'lon', 'nlat': 'lat'}, inplace=True)
-                ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+            iter1 = [(u, u0, self.session, dataset_types, min_lat, max_lat, min_lon, max_lon) for u, u0 in remote_dict.items()]
 
-                lat = ds2.lat.values
-                lon = ds2.lon.values
+            output = ThreadPool(dl_sim_count).starmap(download_files, iter1)
 
-                for ar in ds2.data_vars:
-                    ds_date1 = ds.attrs['FileHeader'].split(';\n')
-                    ds_date2 = dict([t.split('=') for t in ds_date1 if t != ''])
-                    ds_date = pd.to_datetime(ds_date2['StopGranuleDateTime'])
-                    da1 = xr.DataArray(ds2[ar].values.reshape(1, len(lon), len(lat)), coords=[[ds_date], lon, lat], dims=['time', 'lon', 'lat'], name=ar)
-                    da1.attrs = ds2[ar].attrs
-                    ds2[ar] = da1
+            ds_list.extend(output)
 
-                ## Save data as cache
-                if isinstance(self.cache_dir, str):
-                    if not os.path.isfile(u0):
-                        print('Saving data to...')
-                        print(u0)
-                        ds2.to_netcdf(u0)
-
-                if only_cache:
-                    ds_list.extend(u0)
-                else:
-                    ds_list.append(ds2)
-
-        if only_cache:
-            ds_all = ds_list
-        else:
-            ds_all = xr.concat(ds_list, dim='time')
+        ds_all = xr.concat(ds_list, dim='time')
 
         return ds_all
+
