@@ -30,31 +30,32 @@ def download_files(url, path, session, dataset_types, min_lat, max_lat, min_lon,
     print('Downloading and saving to...')
     print(path)
 #    print(url)
-    counter = 5
+    counter = 4
     while counter > 0:
         try:
             store = xr.backends.PydapDataStore.open(url, session=session)
             ds = xr.open_dataset(store)
+
+            if 'nlon' in ds:
+                ds.rename({'nlon': 'lon', 'nlat': 'lat'}, inplace=True)
+            ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+
+            lat = ds2.lat.values
+            lon = ds2.lon.values
+
+            for ar in ds2.data_vars:
+                ds_date1 = ds.attrs['FileHeader'].split(';\n')
+                ds_date2 = dict([t.split('=') for t in ds_date1 if t != ''])
+                ds_date = pd.to_datetime(ds_date2['StopGranuleDateTime'])
+                da1 = xr.DataArray(ds2[ar].values.reshape(1, len(lon), len(lat)), coords=[[ds_date], lon, lat], dims=['time', 'lon', 'lat'], name=ar)
+                da1.attrs = ds2[ar].attrs
+                ds2[ar] = da1
+
             counter = 0
         except:
             print('url request failed...trying again in 3 seconds.')
             counter = counter - 1
             sleep(3)
-
-    if 'nlon' in ds:
-        ds.rename({'nlon': 'lon', 'nlat': 'lat'}, inplace=True)
-    ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
-
-    lat = ds2.lat.values
-    lon = ds2.lon.values
-
-    for ar in ds2.data_vars:
-        ds_date1 = ds.attrs['FileHeader'].split(';\n')
-        ds_date2 = dict([t.split('=') for t in ds_date1 if t != ''])
-        ds_date = pd.to_datetime(ds_date2['StopGranuleDateTime'])
-        da1 = xr.DataArray(ds2[ar].values.reshape(1, len(lon), len(lat)), coords=[[ds_date], lon, lat], dims=['time', 'lon', 'lat'], name=ar)
-        da1.attrs = ds2[ar].attrs
-        ds2[ar] = da1
 
     ## Save data as cache
     if not os.path.isfile(path):
@@ -280,7 +281,9 @@ class Nasa(object):
         ds_list = []
         if local_set:
             print('Reading local files...')
-            ds = xr.open_mfdataset(list(local_set), concat_dim='time', autoclose=True, parallel=True)
+            local_list = list(local_set)
+            local_list.sort()
+            ds = xr.open_mfdataset(local_list, concat_dim='time', autoclose=True, parallel=True)
             ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
             ds.close()
             ds_list.append(ds2)
