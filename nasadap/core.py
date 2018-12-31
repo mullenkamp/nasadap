@@ -5,6 +5,7 @@ Created on Wed Sep 12 10:27:09 2018
 @author: MichaelK
 """
 import os
+import pickle
 import pandas as pd
 import xarray as xr
 import requests
@@ -15,6 +16,14 @@ from multiprocessing.pool import ThreadPool
 from pydap.client import open_url
 from pydap.cas.urs import setup_session
 from nasadap.util import min_max_dates, mission_product_dict
+
+#######################################
+### Parameters
+
+file_index_name = 'file_index.pickle'
+
+
+#######################################
 
 
 def download_files(url, path, session, dataset_types, min_lat, max_lat, min_lon, max_lon):
@@ -190,7 +199,6 @@ class Nasa(object):
         else:
             product_dict = self.mission_dict['products']
             file_path1 = product_dict[product]
-            file_path = os.path.split(file_path1)[0]
 
         version = self.mission_dict['version']
 
@@ -220,14 +228,31 @@ class Nasa(object):
 
         base_url = self.mission_dict['base_url']
 
+        ## Find out what files exist locally
+        product_dir = file_path1.split('/')[0].format(mission=self.mission.upper(), product=product, version=version)
+        product_path = os.path.join(self.cache_dir, self.mission_dict['process_level'], product_dir)
+        file_index_path = os.path.join(product_path, file_index_name)
+
+        if os.path.isfile(file_index_path):
+            with open(file_index_path, 'rb') as handle:
+                master_set = pickle.load(handle)
+        else:
+            print('Building index of existing local files...')
+            master_set = set()
+            for path, subdirs, files in os.walk(product_path):
+                for name in files:
+                    master_set.add(os.path.join(path, name))
+            with open(file_index_path, 'wb') as handle:
+                pickle.dump(master_set, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        ## Determine what files need to be downloaded
         if 'dayofyear' in file_path1:
             print('Parsing file list from NASA server...')
             file_path = os.path.split(file_path1)[0]
             iter2 = [(date, file_path, self.mission, product, version, self.mission_dict['process_level'], base_url) for date in dates]
             url_list1 = ThreadPool(30).starmap(parse_dap_xml, iter2)
             url_list = list(itertools.chain.from_iterable(url_list1))
-
-        if 'month' in file_path1:
+        elif 'month' in file_path1:
             print('Generating urls...')
             url_list = ['/'.join([base_url, 'opendap', self.mission_dict['process_level'],  file_path1.format(mission=self.mission.upper(), product=product, year=d.year, month=d.month, date=d.strftime('%Y%m%d'), version=version)]) for d in dates]
 
@@ -235,25 +260,27 @@ class Nasa(object):
             split_text = 'hyrax/'
         else:
             split_text = 'opendap/'
-        url_dict = {u: os.path.join(self.cache_dir, os.path.splitext(u.split(split_text)[1])[0] + '.nc4') for u in url_list}
+        url_dict = {u: os.path.join(self.cache_dir, os.path.splitext(u.split(split_text)[1])[0].replace('/', '\\') + '.nc4') for u in url_list}
+        path_set = set(url_dict.values())
 
         save_dirs = set([os.path.split(u)[0] for u in url_dict.values()])
         for path in save_dirs:
             if not os.path.exists(path):
                 os.makedirs(path)
 
+        ## Load in files locally and remotely
         if check_local:
             print('Checking if files exist locally...')
-            local_dict = {url: local for url, local in url_dict.items() if os.path.isfile(local)}
-            remote_dict = {url: local for url, local in url_dict.items() if url in set(url_dict) - set(local_dict)}
+            local_set = path_set.intersection(master_set)
+            remote_dict = {url: local for url, local in url_dict.items() if local not in local_set}
         else:
-            local_dict = {}
+            local_set = set()
             remote_dict = url_dict.copy()
 
         ds_list = []
-        if local_dict:
+        if local_set:
             print('Reading local files...')
-            ds = xr.open_mfdataset(list(local_dict.values()), concat_dim='time')
+            ds = xr.open_mfdataset(list(local_set), concat_dim='time', autoclose=True, parallel=True)
             ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
             ds.close()
             ds_list.append(ds2)
@@ -268,6 +295,11 @@ class Nasa(object):
             ds_list.extend(output)
 
         ds_all = xr.concat(ds_list, dim='time')
+
+        ## Update the file index
+        master_set.update(set(remote_dict.values()))
+        with open(file_index_path, 'wb') as handle:
+            pickle.dump(master_set, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         return ds_all
 

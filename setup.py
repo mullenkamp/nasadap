@@ -10,7 +10,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 name = 'nasadap'
 main_package = 'nasadap'
 # datasets = 'datasets'
-version = '1.1.0'
+version = '1.1.3'
 
 # The below code is for readthedocs. To have sphinx/readthedocs interact with
 # the contained package, readthedocs needs to build the package. But the dependencies

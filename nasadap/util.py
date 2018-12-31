@@ -6,6 +6,7 @@ Utility functions.
 import re
 import requests
 from lxml import etree
+from re import search, IGNORECASE, findall
 import os
 import pandas as pd
 
@@ -150,7 +151,14 @@ def min_max_dates(missions=None, products=None):
     return min_max1
 
 
+def rd_dir(data_dir, ext):
+    """
+    Function to read a directory of files and create a list of files associated with a spcific file extension. Can also create a list of file numbers from within the file list (e.g. if each file is a station number.)
+    """
 
+    files = [filename for filename in os.listdir(data_dir) if search('.' + ext + '$', filename, IGNORECASE)]
+
+    return files
 
 
 
