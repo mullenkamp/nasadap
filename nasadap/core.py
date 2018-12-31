@@ -229,24 +229,7 @@ class Nasa(object):
 
         base_url = self.mission_dict['base_url']
 
-        ## Find out what files exist locally
-        product_dir = file_path1.split('/')[0].format(mission=self.mission.upper(), product=product, version=version)
-        product_path = os.path.join(self.cache_dir, self.mission_dict['process_level'], product_dir)
-        file_index_path = os.path.join(product_path, file_index_name)
-
-        if os.path.isfile(file_index_path):
-            with open(file_index_path, 'rb') as handle:
-                master_set = pickle.load(handle)
-        else:
-            print('Building index of existing local files...')
-            master_set = set()
-            for path, subdirs, files in os.walk(product_path):
-                for name in files:
-                    master_set.add(os.path.join(path, name))
-            with open(file_index_path, 'wb') as handle:
-                pickle.dump(master_set, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-        ## Determine what files need to be downloaded
+        ## Determine what files are needed
         if 'dayofyear' in file_path1:
             print('Parsing file list from NASA server...')
             file_path = os.path.split(file_path1)[0]
@@ -268,6 +251,23 @@ class Nasa(object):
         for path in save_dirs:
             if not os.path.exists(path):
                 os.makedirs(path)
+
+        ## Find out what files exist locally
+        product_dir = file_path1.split('/')[0].format(mission=self.mission.upper(), product=product, version=version)
+        product_path = os.path.join(self.cache_dir, self.mission_dict['process_level'], product_dir)
+        file_index_path = os.path.join(product_path, file_index_name)
+
+        if os.path.isfile(file_index_path):
+            with open(file_index_path, 'rb') as handle:
+                master_set = pickle.load(handle)
+        else:
+            print('Building index of existing local files...')
+            master_set = set()
+            for path, subdirs, files in os.walk(product_path):
+                for name in files:
+                    master_set.add(os.path.join(path, name))
+            with open(file_index_path, 'wb') as handle:
+                pickle.dump(master_set, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         ## Load in files locally and remotely
         if check_local:
