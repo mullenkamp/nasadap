@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jan  2 08:58:12 2019
-
-@author: MichaelEK
+Aggregation functions
 """
 import os
 import numpy as np
