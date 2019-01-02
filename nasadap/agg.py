@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Aggregation functions
+Aggregation functions♀
 """
 import os
 import numpy as np
@@ -90,7 +90,8 @@ def year_combine(param_dict, save_dir, username, password, cache_dir, tz_hour_gm
                 attr_dict.update({'ProductionTime': pd.Timestamp.now().isoformat(), 'institution': 'Environment Canterbury', 'source': 'Aggregated from NASA data'})
                 ds3.attrs = attr_dict
                 all_years = ds3.time.dt.year
-                new_years = np.unique(ds2.time.dt.year.values)
+                new_years1 = np.unique(ds2.time.dt.year)
+                new_years = new_years1[new_years1 >= np.unique(ds1.time.dt.year)[0]]
                 print('*Saving new data...')
                 for y in new_years:
                     year_index = all_years == y
