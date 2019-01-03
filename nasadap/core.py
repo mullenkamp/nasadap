@@ -283,7 +283,7 @@ class Nasa(object):
             print('Reading local files...')
             local_list = list(local_set)
             local_list.sort()
-            ds = xr.open_mfdataset(local_list, concat_dim='time', autoclose=True, parallel=True)
+            ds = xr.open_mfdataset(local_list, concat_dim='time', parallel=True)
             ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
             ds.close()
             ds_list.append(ds2)

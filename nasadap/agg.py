@@ -65,9 +65,10 @@ def year_combine(param_dict, save_dir, username, password, cache_dir, tz_hour_gm
             if not os.path.exists(product_path):
                 os.makedirs(product_path)
             files1 = [os.path.join(product_path, f) for f in os.listdir(product_path) if sp_file_name1 in f]
+            latest_file = files1[-1]
             print('*Reading existing files...')
             if files1:
-                ds1 = xr.open_dataset(files1[-1])
+                ds1 = xr.open_dataset(latest_file)
                 time0 = ds1.time.to_index() - pd.DateOffset(hours=tz_hour_gmt)
                 max_date = str(time0.floor('D').max().date())
                 max_test_date = ds1.time.max().values
@@ -100,5 +101,9 @@ def year_combine(param_dict, save_dir, username, password, cache_dir, tz_hour_gm
                     new_file_name = file_name.format(mission=m, product=p, version=7, from_date=min(new_dates), to_date=max(new_dates))
                     new_file_path = os.path.join(product_path, new_file_name)
                     new_ds1.to_netcdf(new_file_path)
+                print('*Removing old file if not the same as new file...')
+                if os.path.split(latest_file)[1] != os.path.split(new_file_path)[1]:
+                    os.remove(latest_file)
+
             else:
                 print('*No data to be updated')
