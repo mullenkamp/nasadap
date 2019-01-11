@@ -13,20 +13,19 @@ from time import sleep
 from lxml import etree
 import itertools
 from multiprocessing.pool import ThreadPool
-from pydap.client import open_url
+#from pydap.client import open_url
 from pydap.cas.urs import setup_session
-from nasadap.util import min_max_dates, mission_product_dict
+from nasadap.util import min_max_dates, mission_product_dict, master_datasets
 
 #######################################
 ### Parameters
 
 file_index_name = 'file_index.pickle'
 
-
 #######################################
 
 
-def download_files(url, path, session, dataset_types, min_lat, max_lat, min_lon, max_lon):
+def download_files(url, path, session, master_dataset_list, dataset_types, min_lat, max_lat, min_lon, max_lon):
     print('Downloading and saving to...')
     print(path)
 #    print(url)
@@ -37,8 +36,8 @@ def download_files(url, path, session, dataset_types, min_lat, max_lat, min_lon,
             ds = xr.open_dataset(store)
 
             if 'nlon' in ds:
-                ds.rename({'nlon': 'lon', 'nlat': 'lat'}, inplace=True)
-            ds2 = ds[dataset_types].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+                ds = ds.rename({'nlon': 'lon', 'nlat': 'lat'})
+            ds2 = ds[master_dataset_list].sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
 
             lat = ds2.lat.values
             lon = ds2.lon.values
@@ -52,8 +51,9 @@ def download_files(url, path, session, dataset_types, min_lat, max_lat, min_lon,
                 ds2[ar] = da1
 
             counter = 0
-        except:
-            print('url request failed...trying again in 3 seconds.')
+        except Exception as err:
+            print(err)
+            print('Retrying in 3 seconds...')
             counter = counter - 1
             sleep(3)
 
@@ -63,7 +63,7 @@ def download_files(url, path, session, dataset_types, min_lat, max_lat, min_lon,
 #        print(path)
         ds2.to_netcdf(path)
 
-    return ds2
+    return ds2[dataset_types]
 
 
 def parse_dap_xml(date, file_path, mission, product, version, process_level, base_url):
@@ -74,7 +74,6 @@ def parse_dap_xml(date, file_path, mission, product, version, process_level, bas
     et = etree.fromstring(page1.content)
     urls2 = [base_url + c.attrib['ID'] for c in et.getchildren()[2].getchildren()]
     return urls2
-
 
 
 class Nasa(object):
@@ -145,22 +144,32 @@ class Nasa(object):
         self.session.close()
 
 
-    def get_dataset_types(self):
+    def get_products(self):
         """
-        Function to get all of the dataset types and associated attributes for a mission.
+        Function to get the available products for the mission.
 
         Returns
         -------
-        dict
-            of dataset types as the keys
+        list
         """
-        dataset = open_url(self.mission_dict['example_path'], session=self.session)
+        return list(self.mission_dict['products'].keys())
 
-        dataset_dict = {}
-        for i in dataset:
-            dataset_dict.update({dataset[i].name: dataset[i].attributes})
 
-        return dataset_dict
+
+    def get_dataset_types(product):
+        """
+        Function to get all of the dataset types and associated attributes for a mission.
+
+        Parameters
+        ----------
+        product : str
+            The mission product
+
+        Returns
+        -------
+        list
+        """
+        return master_datasets[product]
 
 
     def get_data(self, product, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None, dl_sim_count=30, check_local=True):
@@ -200,6 +209,7 @@ class Nasa(object):
         else:
             product_dict = self.mission_dict['products']
             file_path1 = product_dict[product]
+        master_dataset_list = master_datasets[product]
 
         version = self.mission_dict['version']
 
@@ -291,13 +301,13 @@ class Nasa(object):
         if remote_dict:
             print('Downloading files from NASA...')
 
-            iter1 = [(u, u0, self.session, dataset_types, min_lat, max_lat, min_lon, max_lon) for u, u0 in remote_dict.items()]
+            iter1 = [(u, u0, self.session, master_dataset_list, dataset_types, min_lat, max_lat, min_lon, max_lon) for u, u0 in remote_dict.items()]
 
             output = ThreadPool(dl_sim_count).starmap(download_files, iter1)
 
             ds_list.extend(output)
 
-        ds_all = xr.concat(ds_list, dim='time')
+        ds_all = xr.concat(ds_list, dim='time').sortby('time')
 
         ## Update the file index
         master_set.update(set(remote_dict.values()))

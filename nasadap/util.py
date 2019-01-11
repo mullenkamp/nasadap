@@ -21,8 +21,7 @@ mission_product_dict = {
                 'products': {
                         '3B42_Daily': '{mission}_{product}.{version}/{year}/{month:02}/{product}.{date}.{version}.nc4',
                         '3B42': '{mission}_{product}.{version}/{year}/{dayofyear:03}/{product}.{date}.{hour}.{version}.HDF'
-                            },
-                'example_path': 'https://disc2.gesdisc.eosdis.nasa.gov:443/opendap/TRMM_L3/TRMM_3B42_Daily.7/1998/01/3B42_Daily.19980101.7.nc4'
+                            }
                 },
         'gpm': {
                 'base_url': 'https://gpm1.gesdisc.eosdis.nasa.gov:443',
@@ -35,10 +34,21 @@ mission_product_dict = {
                         '3IMERGHHE': '{mission}_{product}.{version:02}/{year}/{dayofyear:03}/3B-HHR-E.MS.MRG.3IMERG.{date}-S{time_start}-E{time_end}.{minutes}.V{version:02}B.HDF5',
                         '3IMERGHHL': '{mission}_{product}.{version:02}/{year}/{dayofyear:03}/3B-HHR-L.MS.MRG.3IMERG.{date}-S{time_start}-E{time_end}.{minutes}.V{version:02}B.HDF5',
                         '3IMERGHH': '{mission}_{product}.{version:02}/{year}/{dayofyear:03}/3B-HHR.MS.MRG.3IMERG.{date}-S{time_start}-E{time_end}.{minutes}.V{version:02}B.HDF5'
-                            },
-                'example_path': 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap/hyrax/GPM_L3/GPM_3IMERGDF.05/2014/03/3B-DAY.MS.MRG.3IMERG.20140312-S000000-E235959.V05.nc4'
+                            }
                 }
         }
+
+master_datasets = {'3B42_Daily': ['precipitation', 'randomError', 'HQprecipitation', 'IRprecipitation'],
+                   '3B42': ['precipitation', 'relativeError', 'HQprecipitation', 'IRprecipitation'],
+                   '3IMERGHHE': ['precipitationQualityIndex', 'IRkalmanFilterWeight', 'precipitationCal', 'HQprecipitation', 'probabilityLiquidPrecipitation', 'randomError', 'IRprecipitation'],
+                   '3IMERGHHL': ['precipitationQualityIndex', 'IRkalmanFilterWeight', 'precipitationCal', 'HQprecipitation', 'probabilityLiquidPrecipitation', 'randomError', 'IRprecipitation'],
+                   '3IMERGHH': ['precipitationQualityIndex', 'IRkalmanFilterWeight', 'precipitationCal', 'HQprecipitation', 'probabilityLiquidPrecipitation', 'randomError', 'IRprecipitation'],
+                   '3IMERGDE': ['precipitationCal', 'HQprecipitation', 'randomError'],
+                   '3IMERGDL': ['precipitationCal', 'HQprecipitation', 'randomError'],
+                   '3IMERGDF': ['precipitationCal', 'HQprecipitation', 'randomError']}
+
+
+
 
 ###############################################
 ### Functions
