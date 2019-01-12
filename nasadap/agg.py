@@ -72,11 +72,13 @@ def year_combine(param_dict, save_dir, username, password, cache_dir, tz_hour_gm
                 time0 = ds1.time.to_index() - pd.DateOffset(hours=tz_hour_gmt)
                 max_date = str(time0.floor('D').max().date())
                 max_test_date = ds1.time.max().values
+                year = np.unique(ds1.time.dt.year)[0]
             else:
                 ds1 = xr.Dataset()
                 min_max = min_max_dates(m, p)
                 max_date = str(min_max['start_date'].iloc[0].date())
                 max_test_date = np.nan
+                year = 0
             print('*Reading new files...')
             ds2 = ge.get_data(p, products[p], from_date=max_date, min_lat=min_lat, max_lat=max_lat, min_lon=min_lon, max_lon=max_lon, dl_sim_count=dl_sim_count)
             ds2['time'] = ds2.time.to_index() + pd.DateOffset(hours=tz_hour_gmt)
@@ -92,7 +94,7 @@ def year_combine(param_dict, save_dir, username, password, cache_dir, tz_hour_gm
                 ds3.attrs = attr_dict
                 all_years = ds3.time.dt.year
                 new_years1 = np.unique(ds2.time.dt.year)
-                new_years = new_years1[new_years1 >= np.unique(ds1.time.dt.year)[0]]
+                new_years = new_years1[new_years1 >= year]
                 print('*Saving new data...')
                 for y in new_years:
                     year_index = all_years == y
@@ -101,9 +103,10 @@ def year_combine(param_dict, save_dir, username, password, cache_dir, tz_hour_gm
                     new_file_name = file_name.format(mission=m, product=p, version=7, from_date=min(new_dates), to_date=max(new_dates))
                     new_file_path = os.path.join(product_path, new_file_name)
                     new_ds1.to_netcdf(new_file_path)
-                print('*Removing old file if not the same as new file...')
-                if os.path.split(latest_file)[1] != os.path.split(new_file_path)[1]:
-                    os.remove(latest_file)
+                if year != 0:
+                    print('*Removing old file if not the same as new file...')
+                    if os.path.split(latest_file)[1] != os.path.split(new_file_path)[1]:
+                        os.remove(latest_file)
 
             else:
                 print('*No data to be updated')
