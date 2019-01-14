@@ -233,7 +233,7 @@ class Nasa(object):
         else:
             to_date = max_date
 
-        print('Getting data from {start} to {end}'.format(start=from_date, end=to_date))
+        print('Getting data from {start} to {end}'.format(start=str(from_date.date()), end=str(to_date.date())))
 
         dates = pd.date_range(from_date, to_date)
 

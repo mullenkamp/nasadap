@@ -19,14 +19,18 @@ file_name = '{mission}_{product}_v{version:02}_{from_date}-{to_date}.nc4'
 ### Aggregate files
 
 
-def year_combine(param_dict, save_dir, username, password, cache_dir, tz_hour_gmt, min_lat, max_lat, min_lon, max_lon, dl_sim_count):
+def time_combine(mission, product, datasets, save_dir, username, password, cache_dir, tz_hour_gmt, freq, min_lat, max_lat, min_lon, max_lon, dl_sim_count):
     """
-    Function to aggregate the data from the cache to yearly netcdf files and update the cache if new data has been added to the NASA server.
+    Function to aggregate the data from the cache to netcdf files and update the cache if new data has been added to the NASA server.
 
     Parameters
     ----------
-    param_dict : dict
-        A dict of {mission: {product: dataset}}
+    mission : str
+        Mission name.
+    product : str
+        The product associated with the mission.
+    datasets : str or list of str
+        The dataset(s) to be aggregated.
     save_dir : str
         The path to where the yearly files should be saved.
     username : str
@@ -37,6 +41,8 @@ def year_combine(param_dict, save_dir, username, password, cache_dir, tz_hour_gm
         A path to cache the netcdf files for future reading. If None, the currently working directory is used.
     tz_hour_gmt : int
         The timezone hour from GMT. e.g. GMT+12 would simply be 12.
+    freq : str
+        Pandas str frequency indicator for the time periods. e.g. 'M' is month and 'A' is annual.
     min_lat : int, float, or None
         The minimum lat to extract in WGS84 decimal degrees.
     max_lat : int, float, or None
@@ -54,59 +60,62 @@ def year_combine(param_dict, save_dir, username, password, cache_dir, tz_hour_gm
     """
     time_dict = {'long_name': 'time', 'tz': 'GMT{}'.format(tz_hour_gmt)}
 
-    for m in param_dict:
-        print(m)
-        ge = Nasa(username, password, m, cache_dir)
-        products = param_dict[m]
-        for p in products:
-            print(p)
-            sp_file_name1 = sp_file_name.format(mission=m, product=p, version=7)
-            product_path = os.path.join(save_dir, m + '_' + p)
-            if not os.path.exists(product_path):
-                os.makedirs(product_path)
-            files1 = [os.path.join(product_path, f) for f in os.listdir(product_path) if sp_file_name1 in f]
-            print('*Reading existing files...')
-            if files1:
-                latest_file = files1[-1]
-                ds1 = xr.open_dataset(latest_file)
-                time0 = ds1.time.to_index() - pd.DateOffset(hours=tz_hour_gmt)
-                max_date = str(time0.floor('D').max().date())
-                max_test_date = ds1.time.max().values
-                year = np.unique(ds1.time.dt.year)[0]
-            else:
-                ds1 = xr.Dataset()
-                min_max = min_max_dates(m, p)
-                max_date = str(min_max['start_date'].iloc[0].date())
-                max_test_date = np.nan
-                year = 0
-            print('*Reading new files...')
-            ds2 = ge.get_data(p, products[p], from_date=max_date, min_lat=min_lat, max_lat=max_lat, min_lon=min_lon, max_lon=max_lon, dl_sim_count=dl_sim_count)
-            ds2['time'] = ds2.time.to_index() + pd.DateOffset(hours=tz_hour_gmt)
-            ds2['time'].attrs = time_dict
-            if not max_test_date == ds2.time.max().values:
-                print('*New data will be added')
-                ds3 = ds2.combine_first(ds1)
-                ds1.close()
-                attr_dict = {key: value for key, value in ds3.attrs.items() if key in ['title']}
-                if not 'title' in attr_dict:
-                    attr_dict['title'] = ' '.join([m, p])
-                attr_dict.update({'ProductionTime': pd.Timestamp.now().isoformat(), 'institution': 'Environment Canterbury', 'source': 'Aggregated from NASA data'})
-                ds3.attrs = attr_dict
-                all_years = ds3.time.dt.year
-                new_years1 = np.unique(ds2.time.dt.year)
-                new_years = new_years1[new_years1 >= year]
-                print('*Saving new data...')
-                for y in new_years:
-                    year_index = all_years == y
-                    new_ds1 = ds3.sel(time=year_index)
-                    new_dates = new_ds1.time.to_index().strftime('%Y%m%d')
-                    new_file_name = file_name.format(mission=m, product=p, version=7, from_date=min(new_dates), to_date=max(new_dates))
-                    new_file_path = os.path.join(product_path, new_file_name)
-                    new_ds1.to_netcdf(new_file_path)
-                if year != 0:
-                    print('*Removing old file if not the same as new file...')
-                    if os.path.split(latest_file)[1] != os.path.split(new_file_path)[1]:
-                        os.remove(latest_file)
+    if isinstance(datasets, str):
+        datasets = [datasets]
 
-            else:
-                print('*No data to be updated')
+    ge = Nasa(username, password, mission, cache_dir)
+    sp_file_name1 = sp_file_name.format(mission=mission, product=product, version=7)
+    product_path = os.path.join(save_dir, mission + '_' + product)
+    if not os.path.exists(product_path):
+        os.makedirs(product_path)
+    files1 = [os.path.join(product_path, f) for f in os.listdir(product_path) if sp_file_name1 in f]
+    print('*Reading existing files...')
+    min_max = min_max_dates(mission, product)
+    end_date = str(min_max['end_date'].iloc[0].date())
+    if files1:
+        latest_file = files1[-1]
+        ds1 = xr.open_dataset(latest_file)
+        time0 = ds1.time.to_index()
+        start_date = pd.Timestamp(time0.floor('D').max().to_datetime64().astype('datetime64[M]').astype('datetime64[ns]'))
+        max_test_date = ds1.time.max().values
+        del ds1
+    else:
+        start_date = str(min_max['start_date'].iloc[0].date())
+        max_test_date = np.datetime64('1900-01-01')
+        latest_file = None
+    print('*Reading new files...')
+    end_dates = pd.date_range(start_date, end_date, freq=freq)
+    if not end_date in end_dates:
+        end_dates = end_dates.append(pd.to_datetime([end_date]))
+    start_dates1 = end_dates.values.astype('datetime64[M]').astype('datetime64[ns]').copy()
+    start_dates1[0] = start_date
+    start_dates = pd.to_datetime(start_dates1)
+    dates = list(zip(start_dates, end_dates))
+    for s, e in dates:
+        print(str(s.date()), str(e.date()))
+        s1 = str((s - pd.DateOffset(hours=tz_hour_gmt)).date())
+        e1 =  str((e + pd.DateOffset(hours=tz_hour_gmt)).date())
+        ds2 = ge.get_data(product, datasets, from_date=s1, to_date=e1, min_lat=min_lat, max_lat=max_lat, min_lon=min_lon, max_lon=max_lon, dl_sim_count=dl_sim_count).load()
+        ds2['time'] = ds2.time.to_index() + pd.DateOffset(hours=tz_hour_gmt)
+        ds2['time'].attrs = time_dict
+        if not max_test_date == ds2.time.max().values:
+            print('*New data will be added')
+            attr_dict = {key: value for key, value in ds2.attrs.items() if key in ['title']}
+            if not 'title' in attr_dict:
+                attr_dict['title'] = ' '.join([mission, product])
+            attr_dict.update({'ProductionTime': pd.Timestamp.now().isoformat(), 'institution': 'Environment Canterbury', 'source': 'Aggregated from NASA data'})
+            ds2.attrs = attr_dict
+            print('*Saving new data...')
+            ds2 = ds2.sel(time=slice(s, str(e.date())))
+            new_dates = ds2.time.to_index().strftime('%Y%m%d')
+            new_file_name = file_name.format(mission=mission, product=product, version=7, from_date=min(new_dates), to_date=max(new_dates))
+            new_file_path = os.path.join(product_path, new_file_name)
+            ds2.to_netcdf(new_file_path)
+        else:
+            new_file_path = None
+    if isinstance(latest_file, str) & isinstance(new_file_path, str):
+        if os.path.split(latest_file)[1] != os.path.split(new_file_path)[1]:
+            print('*Removing old file')
+            os.remove(latest_file)
+        else:
+            print('*No data to be updated')
