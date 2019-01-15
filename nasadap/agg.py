@@ -76,13 +76,13 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
         latest_file = files1[-1]
         ds1 = xr.open_dataset(latest_file)
         time0 = ds1.time.to_index()
-        start_date = pd.Timestamp(time0.floor('D').max().to_datetime64().astype('datetime64[M]').astype('datetime64[ns]'))
+        start_date = str(time0.max().date())
         max_test_date = ds1.time.max().values
-        del ds1
     else:
         start_date = str(min_max['start_date'].iloc[0].date())
         max_test_date = np.datetime64('1900-01-01')
         latest_file = None
+        ds1 = None
     print('*Reading new files...')
     end_dates = pd.date_range(start_date, end_date, freq=freq)
     if not end_date in end_dates:
@@ -100,6 +100,11 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
         ds2['time'].attrs = time_dict
         if not max_test_date == ds2.time.max().values:
             print('*New data will be added')
+            if isinstance(ds1, xr.Dataset):
+                ds2 = ds2.combine_first(ds1).sortby('time')
+                ds1.close()
+                ds1 = None
+                s = pd.Timestamp(ds2.time.min().data).floor('D')
             attr_dict = {key: value for key, value in ds2.attrs.items() if key in ['title']}
             if not 'title' in attr_dict:
                 attr_dict['title'] = ' '.join([mission, product])
