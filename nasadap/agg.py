@@ -91,6 +91,7 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
     start_dates1[0] = start_date
     start_dates = pd.to_datetime(start_dates1)
     dates = list(zip(start_dates, end_dates))
+    new_paths = []
     for s, e in dates:
         print(str(s.date()), str(e.date()))
         s1 = str((s - pd.DateOffset(hours=tz_hour_gmt)).date())
@@ -118,7 +119,8 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
             ds2.to_netcdf(new_file_path)
         else:
             new_file_path = None
-    if isinstance(latest_file, str) & isinstance(new_file_path, str):
+        new_paths.append(new_file_path)
+    if isinstance(latest_file, str) & isinstance(new_paths[0], str):
         if os.path.split(latest_file)[1] != os.path.split(new_file_path)[1]:
             print('*Removing old file')
             os.remove(latest_file)
