@@ -70,7 +70,7 @@ At the moment, there is a single class called NASA that provides access to the d
   mission2 = 'gpm'
   from_date = '2018-01-30'
   to_date = '2018-02-02'
-  product1 = '3B42_Daily'
+  product1 = '3B42'
   product2 = '3IMERGDF'
   dataset_type1 = 'precipitation'
   dataset_type2 = 'precipitationCal'
@@ -78,18 +78,51 @@ At the moment, there is a single class called NASA that provides access to the d
   max_lat=-33
   min_lon=165
   max_lon=180
-  cache_dir = 'nasa/precip'
+  cache_dir = 'nasa/cache/nz'
 
   ###############################
-  ### Tests
+  ### Examples
 
   min_max = min_max_dates(mission1) # Will give you the min and max available dates for products
 
   ge1 = Nasa(username, password, mission1, cache_dir)
-  dataset_types = ge1.get_dataset_types()
+
+  products = ge1.get_products()
+
+  datasets = ge1.get_dataset_types(products[0])
+
   ds1 = ge1.get_data(product1, dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
   ge1.close()
 
   ge2 = Nasa(username, password, mission2, cache_dir)
   ds2 = ge2.get_data(product2, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
   ge2.close()
+
+Once you've got the cached data, you might want accessible aggregated netcdf files by year or month. The time_combine function under the agg module provides a way to aggregate all of the many netcdf files together and will update the files as new data is added to NASA's server. It will also shift the time to the appropriate time zone (since the NASA data is in UTC).
+
+.. code-block:: python
+
+  from nasadap import agg
+
+  ###############################
+  ### Parameters
+
+  cache_dir = 'nasa/cache/nz'
+  save_dir = 'nasa/precip'
+
+  username = '' # Need to change!
+  password = '' # Need to change!
+
+  mission = 'trmm'
+  freq = 'A'
+  product = '3B42'
+  datasets = ['precipitation', 'relativeError']
+
+  min_lat=-49
+  max_lat=-33
+  min_lon=165
+  max_lon=180
+  dl_sim_count = 50
+  tz_hour_gmt = 12
+
+  agg.time_combine(mission, product, datasets, save_dir, username, password, cache_dir, tz_hour_gmt, freq, min_lat, max_lat, min_lon, max_lon, dl_sim_count)
