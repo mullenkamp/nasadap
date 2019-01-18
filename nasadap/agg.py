@@ -69,6 +69,7 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
     if not os.path.exists(product_path):
         os.makedirs(product_path)
     files1 = [os.path.join(product_path, f) for f in os.listdir(product_path) if sp_file_name1 in f]
+
     print('*Reading existing files...')
     min_max = min_max_dates(mission, product)
     end_date = str(min_max['end_date'].iloc[0].date())
@@ -83,14 +84,19 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
         max_test_date = np.datetime64('1900-01-01')
         latest_file = None
         ds1 = None
-    print('*Reading new files...')
+
+    ### Prepare the date ranges
     end_dates = pd.date_range(start_date, end_date, freq=freq)
     if not end_date in end_dates:
         end_dates = end_dates.append(pd.to_datetime([end_date]))
-    start_dates1 = end_dates.values.astype('datetime64[M]').astype('datetime64[ns]').copy()
+    start_dates1 = pd.PeriodIndex(end_dates, freq=freq).astype('datetime64[ns]').values
     start_dates1[0] = start_date
+    if pd.Timestamp(start_dates1[0]) > end_dates[0]:
+        start_dates1[0] = end_dates[0]
     start_dates = pd.to_datetime(start_dates1)
     dates = list(zip(start_dates, end_dates))
+
+    print('*Reading new files...')
     new_paths = []
     for s, e in dates:
         print(str(s.date()), str(e.date()))
@@ -99,11 +105,11 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
         ds2 = ge.get_data(product, datasets, from_date=s1, to_date=e1, min_lat=min_lat, max_lat=max_lat, min_lon=min_lon, max_lon=max_lon, dl_sim_count=dl_sim_count).load()
         ds2['time'] = ds2.time.to_index() + pd.DateOffset(hours=tz_hour_gmt)
         ds2['time'].attrs = time_dict
-        if not max_test_date == ds2.time.max().values:
+        ds2 = ds2.sel(time=slice(s, str(e.date())))
+        if max_test_date != ds2.time.max().values:
             print('*New data will be added')
             if isinstance(ds1, xr.Dataset):
                 ds2 = ds2.combine_first(ds1).sortby('time')
-                ds1.close()
                 ds1 = None
                 s = pd.Timestamp(ds2.time.min().data).floor('D')
             attr_dict = {key: value for key, value in ds2.attrs.items() if key in ['title']}
@@ -112,17 +118,16 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
             attr_dict.update({'ProductionTime': pd.Timestamp.now().isoformat(), 'institution': 'Environment Canterbury', 'source': 'Aggregated from NASA data'})
             ds2.attrs = attr_dict
             print('*Saving new data...')
-            ds2 = ds2.sel(time=slice(s, str(e.date())))
             new_dates = ds2.time.to_index().strftime('%Y%m%d')
             new_file_name = file_name.format(mission=mission, product=product, version=7, from_date=min(new_dates), to_date=max(new_dates))
             new_file_path = os.path.join(product_path, new_file_name)
             ds2.to_netcdf(new_file_path)
         else:
+            ds1 = None
             new_file_path = None
+            print('*No data to be updated')
         new_paths.append(new_file_path)
     if isinstance(latest_file, str) & isinstance(new_paths[0], str):
         if os.path.split(latest_file)[1] != os.path.split(new_file_path)[1]:
             print('*Removing old file')
             os.remove(latest_file)
-        else:
-            print('*No data to be updated')

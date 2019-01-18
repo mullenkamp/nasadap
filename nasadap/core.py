@@ -195,7 +195,7 @@ class Nasa(object):
         max_lon : int, float, or None
             The maximum lon to extract in WGS84 decimal degrees.
         dl_sim_count : int
-            The number of simultaneous downloads on a single thread. Speed could be increase with more simultaneous downloads, but up to a limit of the PC's single thread speed.
+            The number of simultaneous downloads on a single thread. Speed could be increased with more simultaneous downloads, but up to a limit of the PC's single thread speed. Also, NASA's opendap server seems to have a limit to the total number of simultaneous downloads. 50-60 seems to be around the max.
         check_local : bool
             Should the local files be checked and read? Pass False if you only want to download files and not check for local files. Any local files will be overwritten!
 
