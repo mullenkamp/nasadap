@@ -125,4 +125,6 @@ Once you've got the cached data, you might want to aggregate the netcdf files by
   dl_sim_count = 50
   tz_hour_gmt = 12
 
-  agg.time_combine(mission, product, datasets, save_dir, username, password, cache_dir, tz_hour_gmt, freq, min_lat, max_lat, min_lon, max_lon, dl_sim_count)
+  agg.time_combine(mission, product, datasets, save_dir, username, password,
+                    cache_dir, tz_hour_gmt, freq, min_lat, max_lat, min_lon,
+                    max_lon, dl_sim_count)
