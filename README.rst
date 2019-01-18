@@ -98,7 +98,7 @@ At the moment, there is a single class called NASA that provides access to the d
   ds2 = ge2.get_data(product2, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
   ge2.close()
 
-Once you've got the cached data, you might want accessible aggregated netcdf files by year or month. The time_combine function under the agg module provides a way to aggregate all of the many netcdf files together and will update the files as new data is added to NASA's server. It will also shift the time to the appropriate time zone (since the NASA data is in UTC).
+Once you've got the cached data, you might want to aggregate the netcdf files by year or month to make it more accessible outside of nasadap. The time_combine function under the agg module provides a way to aggregate all of the many netcdf files together and will update the files as new data is added to NASA's server. It will also shift the time to the appropriate time zone (since the NASA data is in UTC).
 
 .. code-block:: python
 
