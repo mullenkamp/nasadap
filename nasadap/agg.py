@@ -122,6 +122,7 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
             new_file_name = file_name.format(mission=mission, product=product, version=7, from_date=min(new_dates), to_date=max(new_dates))
             new_file_path = os.path.join(product_path, new_file_name)
             ds2.to_netcdf(new_file_path)
+            ds2.close()
         else:
             ds1 = None
             new_file_path = None
