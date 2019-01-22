@@ -75,7 +75,10 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
     end_date = str(min_max['end_date'].iloc[0].date())
     if files1:
         latest_file = files1[-1]
-        ds1 = xr.open_dataset(latest_file)
+        ds0 = xr.open_dataset(latest_file)
+        ds1 = ds0.copy()
+        ds0.close()
+        del ds0
         time0 = ds1.time.to_index()
         start_date = str(time0.max().date())
         max_test_date = ds1.time.max().values
