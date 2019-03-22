@@ -25,14 +25,15 @@ product2d = '3IMERGHHE'
 product2e = '3IMERGHHL'
 product2f = '3IMERGHH'
 from_date = '2018-01-19'
-to_date = '2018-01-21'
+to_date = '2018-01-20'
 dataset_type1 = 'precipitation'
 dataset_type2 = 'precipitationCal'
 min_lat=-49
 max_lat=-33
 min_lon=165
 max_lon=180
-cache_dir = r'\\fs02\GroundWaterMetData$\nasa\cache\nz'
+#cache_dir = r'\\fs02\GroundWaterMetData$\nasa\cache\nz'
+cache_dir = ''
 
 ###############################
 ### Tests
@@ -40,15 +41,15 @@ cache_dir = r'\\fs02\GroundWaterMetData$\nasa\cache\nz'
 ## trmm
 
 def test_trmm_session():
-    ge = Nasa(username, password, mission1, cache_dir)
+    ge = Nasa(username, password, mission1)
 
     assert ge is not None
 
-ge = Nasa(username, password, mission1, cache_dir)
+ge = Nasa(username, password, mission1)
 
 
 def test_trmm_dataset_types():
-    ds_types = ge.get_dataset_types()
+    ds_types = ge.get_dataset_types(product1a)
 
     assert ds_types is not None
 
@@ -56,13 +57,13 @@ def test_trmm_dataset_types():
 def test_trmm1():
     ds1 = ge.get_data(product1a, dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds1[dataset_type1].shape == (4, 60, 64)
+    assert ds1[dataset_type1].shape == (2, 60, 64)
 
 
 def test_trmm2():
     ds1 = ge.get_data(product1b, dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds1[dataset_type1].shape == (32, 60, 64)
+    assert ds1[dataset_type1].shape == (16, 60, 64)
 
 ge.close()
 
@@ -70,15 +71,15 @@ ge.close()
 
 
 def test_gpm_session():
-    ge = Nasa(username, password, mission2, cache_dir)
+    ge = Nasa(username, password, mission2)
 
     assert ge is not None
 
-ge = Nasa(username, password, mission2, cache_dir)
+ge = Nasa(username, password, mission2)
 
 
 def test_gpm_dataset_types():
-    ds_types = ge.get_dataset_types()
+    ds_types = ge.get_dataset_types(product2a)
 
     assert ds_types is not None
 
@@ -86,37 +87,37 @@ def test_gpm_dataset_types():
 def test_gpm1():
     ds2 = ge.get_data(product2a, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds2[dataset_type2].shape == (4, 150, 160)
+    assert ds2[dataset_type2].shape == (2, 150, 160)
 
 
 def test_gpm2():
     ds2 = ge.get_data(product2b, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds2[dataset_type2].shape == (4, 150, 160)
+    assert ds2[dataset_type2].shape == (2, 150, 160)
 
 
 def test_gpm3():
     ds2 = ge.get_data(product2c, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds2[dataset_type2].shape == (4, 150, 160)
+    assert ds2[dataset_type2].shape == (2, 150, 160)
 
 
 def test_gpm4():
     ds2 = ge.get_data(product2d, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds2[dataset_type2].shape == (192, 150, 160)
+    assert ds2[dataset_type2].shape == (96, 150, 160)
 
 
 def test_gpm5():
     ds2 = ge.get_data(product2e, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds2[dataset_type2].shape == (192, 150, 160)
+    assert ds2[dataset_type2].shape == (96, 150, 160)
 
 
 def test_gpm6():
     ds2 = ge.get_data(product2f, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
 
-    assert ds2[dataset_type2].shape == (192, 150, 160)
+    assert ds2[dataset_type2].shape == (96, 150, 160)
 
 ge.close()
 

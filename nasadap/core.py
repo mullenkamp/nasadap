@@ -155,7 +155,7 @@ class Nasa(object):
         return list(self.mission_dict['products'].keys())
 
 
-
+    @staticmethod
     def get_dataset_types(product):
         """
         Function to get all of the dataset types and associated attributes for a mission.
