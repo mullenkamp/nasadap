@@ -155,15 +155,10 @@ ge.close()
 #ds4.to_netcdf(t1, mode='a', unlimited_dims='time')
 #ds5.to_netcdf(t1, mode='a', unlimited_dims='time')
 
-ge = Nasa(username, password, mission1, cache_dir)
-
-start1 = time()
-ds1 = ge.get_data(product1a, dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon, dl_sim_count=65)
-end1 = time()
-
-diff1 = end1 - start1
-
-
-
-
-
+# ge = Nasa(username, password, mission1, cache_dir)
+#
+# start1 = time()
+# ds1 = ge.get_data(product1a, dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon, dl_sim_count=65)
+# end1 = time()
+#
+# diff1 = end1 - start1

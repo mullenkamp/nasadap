@@ -1,0 +1,17 @@
+name: test
+channels:
+  - defaults
+dependencies:
+  - python=3.6
+  # required
+  - xarray
+  - pydap
+  - lxml
+  - requests
+  - dask
+  - netCDF4
+  # testing
+  - pytest
+  - pytest-cov
+  - pip:
+    - codecov
