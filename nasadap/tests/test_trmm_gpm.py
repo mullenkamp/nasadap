@@ -12,8 +12,8 @@ from time import time
 ###############################
 ### Parameters
 
-username = '' # Need to change for test
-password = '' # Need to change for test
+username = 'mullenkamp1' # Need to change for test
+password = 'e8N5kxx8jYQvGYu' # Need to change for test
 mission1 = 'trmm'
 mission2 = 'gpm'
 product1a = '3B42_Daily'
