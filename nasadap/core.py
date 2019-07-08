@@ -15,7 +15,8 @@ import itertools
 from multiprocessing.pool import ThreadPool
 #from pydap.client import open_url
 from pydap.cas.urs import setup_session
-from nasadap.util import min_max_dates, mission_product_dict, master_datasets
+from nasadap.util import parse_nasa_catalog, mission_product_dict, master_datasets
+#from util import parse_nasa_catalog, mission_product_dict, master_datasets
 
 #######################################
 ### Parameters
@@ -26,14 +27,14 @@ file_index_name = 'file_index.pickle'
 
 
 def download_files(url, path, session, master_dataset_list, dataset_types, min_lat, max_lat, min_lon, max_lon):
-    print('Downloading and saving to...')
+#    print('Downloading and saving to...')
     print(path)
 #    print(url)
     counter = 4
     while counter > 0:
         try:
             store = xr.backends.PydapDataStore.open(url, session=session)
-            ds = xr.open_dataset(store)
+            ds = xr.open_dataset(store, decode_cf=False)
 
             if 'nlon' in ds:
                 ds = ds.rename({'nlon': 'lon', 'nlat': 'lat'})
@@ -42,11 +43,13 @@ def download_files(url, path, session, master_dataset_list, dataset_types, min_l
             lat = ds2.lat.values
             lon = ds2.lon.values
 
+            ds_date1 = ds.attrs['FileHeader'].split(';\n')
+            ds_date2 = dict([t.split('=') for t in ds_date1 if t != ''])
+            ds_date = pd.to_datetime([ds_date2['StopGranuleDateTime']]).tz_convert(None)
+            ds2['time'] = ds_date
+
             for ar in ds2.data_vars:
-                ds_date1 = ds.attrs['FileHeader'].split(';\n')
-                ds_date2 = dict([t.split('=') for t in ds_date1 if t != ''])
-                ds_date = pd.to_datetime(ds_date2['StopGranuleDateTime'])
-                da1 = xr.DataArray(ds2[ar].values.reshape(1, len(lon), len(lat)), coords=[[ds_date], lon, lat], dims=['time', 'lon', 'lat'], name=ar)
+                da1 = xr.DataArray(ds2[ar].values.reshape(1, len(lon), len(lat)), coords=[ds_date, lon, lat], dims=['time', 'lon', 'lat'], name=ar)
                 da1.attrs = ds2[ar].attrs
                 ds2[ar] = da1
 
@@ -72,7 +75,7 @@ def parse_dap_xml(date, file_path, mission, product, version, process_level, bas
     url1 = '/'.join([base_url, 'opendap', path2, 'catalog.xml'])
     page1 = requests.get(url1)
     et = etree.fromstring(page1.content)
-    urls2 = [base_url + c.attrib['ID'] for c in et.getchildren()[2].getchildren()]
+    urls2 = [base_url + c.attrib['ID'] for c in et.getchildren()[3].getchildren() if not '.xml' in c.attrib['ID']]
     return urls2
 
 
@@ -172,7 +175,7 @@ class Nasa(object):
         return master_datasets[product]
 
 
-    def get_data(self, product, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None, dl_sim_count=30, check_local=True):
+    def get_data(self, product, version, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None, dl_sim_count=30, check_local=True):
         """
         Function to download trmm or gpm data and convert it to an xarray dataset.
 
@@ -211,14 +214,12 @@ class Nasa(object):
             file_path1 = product_dict[product]
         master_dataset_list = master_datasets[product]
 
-        version = self.mission_dict['version']
-
         if isinstance(dataset_types, str):
             dataset_types = [dataset_types]
 
-        min_max = min_max_dates(self.mission, product)
-        min_date = min_max['start_date'][0]
-        max_date = min_max['end_date'][0]
+        min_max = parse_nasa_catalog(self.mission, product, version, min_max=True)
+        min_date = min_max['from_date'][0].tz_convert(None)
+        max_date = min_max['to_date'].iloc[-1].tz_convert(None)
 
         if isinstance(from_date, str):
             from_date = pd.Timestamp(from_date)

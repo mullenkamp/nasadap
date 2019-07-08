@@ -10,7 +10,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 name = 'nasadap'
 main_package = 'nasadap'
 # datasets = 'datasets'
-version = '1.2.0'
+version = '1.3.0'
 
 # The below code is for readthedocs. To have sphinx/readthedocs interact with
 # the contained package, readthedocs needs to build the package. But the dependencies
@@ -18,7 +18,7 @@ version = '1.2.0'
 if os.environ.get('READTHEDOCS', False) == 'True':
     INSTALL_REQUIRES = []
 else:
-    INSTALL_REQUIRES = ['xarray', 'pydap', 'lxml', 'requests', 'dask', 'netCDF4']
+    INSTALL_REQUIRES = ['xarray', 'pydap', 'lxml', 'requests', 'dask', 'netCDF4', 'xmltodict']
 
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:

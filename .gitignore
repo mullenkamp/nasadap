@@ -9,6 +9,7 @@ __pycache__/
 *~
 *.idea
 .pytest_cache/
+utest*
 
 # due to using tox and pytest
 .tox
