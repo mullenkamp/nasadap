@@ -2,35 +2,24 @@
 """
 Utility functions.
 """
-
-import re
 import requests
-from lxml import etree
-from re import search, IGNORECASE, findall
+from re import search, IGNORECASE
 import os
 import pandas as pd
+from xmltodict import parse
+from multiprocessing.pool import ThreadPool
+from time import sleep
+import itertools
 
 ###############################################
 ### Parameters
 
 mission_product_dict = {
-        'trmm': {
-                'base_url': 'https://disc2.gesdisc.eosdis.nasa.gov:443',
-                'process_level': 'TRMM_L3',
-                'version': 7,
-                'products': {
-                        '3B42_Daily': '{mission}_{product}.{version}/{year}/{month:02}/{product}.{date}.{version}.nc4',
-                        '3B42': '{mission}_{product}.{version}/{year}/{dayofyear:03}/{product}.{date}.{hour}.{version}.HDF'
-                            }
-                },
         'gpm': {
                 'base_url': 'https://gpm1.gesdisc.eosdis.nasa.gov:443',
                 'process_level': 'GPM_L3',
-                'version': 5,
+                'version': 6,
                 'products': {
-                        '3IMERGDE': '{mission}_{product}.{version:02}/{year}/{month:02}/3B-DAY-E.MS.MRG.3IMERG.{date}-S000000-E235959.V{version:02}.nc4',
-                        '3IMERGDL': '{mission}_{product}.{version:02}/{year}/{month:02}/3B-DAY-L.MS.MRG.3IMERG.{date}-S000000-E235959.V{version:02}.nc4',
-                        '3IMERGDF': '{mission}_{product}.{version:02}/{year}/{month:02}/3B-DAY.MS.MRG.3IMERG.{date}-S000000-E235959.V{version:02}.nc4',
                         '3IMERGHHE': '{mission}_{product}.{version:02}/{year}/{dayofyear:03}/3B-HHR-E.MS.MRG.3IMERG.{date}-S{time_start}-E{time_end}.{minutes}.V{version:02}B.HDF5',
                         '3IMERGHHL': '{mission}_{product}.{version:02}/{year}/{dayofyear:03}/3B-HHR-L.MS.MRG.3IMERG.{date}-S{time_start}-E{time_end}.{minutes}.V{version:02}B.HDF5',
                         '3IMERGHH': '{mission}_{product}.{version:02}/{year}/{dayofyear:03}/3B-HHR.MS.MRG.3IMERG.{date}-S{time_start}-E{time_end}.{minutes}.V{version:02}B.HDF5'
@@ -38,15 +27,9 @@ mission_product_dict = {
                 }
         }
 
-master_datasets = {'3B42_Daily': ['precipitation', 'randomError', 'HQprecipitation', 'IRprecipitation'],
-                   '3B42': ['precipitation', 'relativeError', 'HQprecipitation', 'IRprecipitation'],
-                   '3IMERGHHE': ['precipitationQualityIndex', 'IRkalmanFilterWeight', 'precipitationCal', 'HQprecipitation', 'probabilityLiquidPrecipitation', 'randomError', 'IRprecipitation'],
+master_datasets = {'3IMERGHHE': ['precipitationQualityIndex', 'IRkalmanFilterWeight', 'precipitationCal', 'HQprecipitation', 'probabilityLiquidPrecipitation', 'randomError', 'IRprecipitation'],
                    '3IMERGHHL': ['precipitationQualityIndex', 'IRkalmanFilterWeight', 'precipitationCal', 'HQprecipitation', 'probabilityLiquidPrecipitation', 'randomError', 'IRprecipitation'],
-                   '3IMERGHH': ['precipitationQualityIndex', 'IRkalmanFilterWeight', 'precipitationCal', 'HQprecipitation', 'probabilityLiquidPrecipitation', 'randomError', 'IRprecipitation'],
-                   '3IMERGDE': ['precipitationCal', 'HQprecipitation', 'randomError'],
-                   '3IMERGDL': ['precipitationCal', 'HQprecipitation', 'randomError'],
-                   '3IMERGDF': ['precipitationCal', 'HQprecipitation', 'randomError']}
-
+                   '3IMERGHH': ['precipitationQualityIndex', 'IRkalmanFilterWeight', 'precipitationCal', 'HQprecipitation', 'probabilityLiquidPrecipitation', 'randomError', 'IRprecipitation']}
 
 
 
@@ -54,8 +37,30 @@ master_datasets = {'3B42_Daily': ['precipitation', 'randomError', 'HQprecipitati
 ### Functions
 
 
+def parse_dates(date, url):
+    """
 
-def min_max_dates(missions=None, products=None):
+    """
+    counter = 4
+    while counter > 0:
+        date_xml = requests.get(url + '/catalog.xml')
+        if date_xml.status_code == 200:
+            break
+        else:
+            print('Retrying in 3 seconds...')
+            counter = counter - 1
+            sleep(3)
+    date_lst = parse(date_xml.content)['thredds:catalog']['thredds:dataset']['thredds:dataset']
+    if not isinstance(date_lst, list):
+        date_lst = [date_lst]
+    date_lst = [d for d in date_lst if not '.xml' in d['@name']]
+    lst1 = [[date, d['@name'].split('-S')[1][:6], d['@name'].split('0-E')[1][:6], d['@name'], d['@ID'], int(d['thredds:dataSize']['#text']), d['thredds:date']['#text']] for d in date_lst]
+
+    return lst1
+
+
+
+def parse_nasa_catalog(mission, product, version, from_date=None, to_date=None, min_max=False):
     """
     Function to parse the NASA Hyrax dap server via the catalog xml.
 
@@ -65,100 +70,84 @@ def min_max_dates(missions=None, products=None):
         The missions to parse. None will parse all available.
     products : str, list of str, or None
         The products to parse. None will parse all available.
+    version : int
+        The product version.
+    from_date : str or None
+        The start date to query.
+    end_date : str or None
+        The end date to query.
+    min_max : bool
+        Should only the min and max dates of the product and version be returned?
 
     Returns
     -------
     DataFrame
         indexed by mission and product
+
+    Notes
+    -----
+    I wish their server was faster, but if you try to query too many dates then it might take a while.
     """
-    if isinstance(missions, str):
-        missions = [missions]
-    elif missions is None:
-        missions = list(mission_product_dict.keys())
-    if isinstance(products, str):
-        products = [products]
+    ## mission/product parse
+    base_url = mission_product_dict[mission]['base_url']
+    mis_url = '/'.join([base_url, 'opendap/hyrax',  mission_product_dict[mission]['process_level']])
+    prod_xml = requests.get(mis_url + '/catalog.xml')
+    prod_lst = parse(prod_xml.content)['thredds:catalog']['thredds:dataset']['thredds:catalogRef']
+    prod1 = [p for p in prod_lst if (product in p['@name']) & (str(version) in p['@name'])]
+    if not prod1:
+        raise ValueError('No combination of product and version in specified mission')
 
-    min_max_dates = {}
+    ## Parse available years
+    years_url = '/'.join([mis_url, prod1[0]['@name']])
+    years_xml = requests.get(years_url + '/catalog.xml')
+    years_lst = parse(years_xml.content)['thredds:catalog']['thredds:dataset']['thredds:catalogRef']
+    if isinstance(years_lst, list):
+        years_dict = {int(y['@name']): y for y in years_lst}
+    else:
+        years_dict = {int(years_lst['@name']): years_lst}
 
-    for m1 in missions:
-        base_url = '/'.join([mission_product_dict[m1]['base_url'], 'opendap',  mission_product_dict[m1]['process_level']])
-#        print(base_url)
-        if products is None:
-            product_dict = mission_product_dict[m1]['products']
-        else:
-            product_dict = {p: mission_product_dict[m1]['products'][p] for p in products if p in mission_product_dict[m1]['products']}
-            if not product_dict:
-                raise ValueError('No products associated with ' + m1 + ' mission.')
+    ## Parse available months/days of the year
+    big_lst = []
+    for y in years_dict:
+        my_url = '/'.join([years_url, str(y)])
+        my_xml = requests.get(my_url + '/catalog.xml')
+        my_lst = parse(my_xml.content)['thredds:catalog']['thredds:dataset']['thredds:catalogRef']
+        if not isinstance(my_lst, list):
+            my_lst = [my_lst]
+        big_lst.extend([[y, int(d['@name']), base_url + d['@ID']] for d in my_lst])
 
-        for p in product_dict:
-            print(p)
-            file_path = product_dict[p]
-            path_split = os.path.split(file_path)
-            mission_product = path_split[0].split('/')[0]
+    my_df = pd.DataFrame(big_lst, columns=['year', 'dayofyear', 'url'])
+    my_df['date'] = pd.to_datetime(my_df.year.astype(str)) + pd.to_timedelta(my_df.dayofyear - 1, unit='D')
+    my_df.drop(['year', 'dayofyear'], axis=1, inplace=True)
 
-            mission_product1 = mission_product.format(mission=m1.upper(), product=p, version=mission_product_dict[m1]['version'])
-            base_url2 = '/'.join([base_url, mission_product1, 'catalog.xml'])
+    ## Get all requested dates
+    if isinstance(from_date, str):
+        my_df = my_df[(my_df.date >= from_date)]
 
-            ## Get all years
-            page1 = requests.get(base_url2)
-            et = etree.fromstring(page1.content)
-            dataset = et.getchildren()[2].getchildren()
+    if isinstance(to_date, str):
+        my_df = my_df[(my_df.date <= to_date)]
 
-            min_attrib = dataset[0].attrib
-            min_year = min_attrib['name']
+    if min_max:
+        my_df = my_df.iloc[[0, -1]]
 
-            max_attrib = dataset[-1].attrib
-            max_year = max_attrib['name']
+    iter1 = [(row.date, row.url) for index, row in my_df.iterrows()]
+    big_lst = ThreadPool(30).starmap(parse_dates, iter1)
+    big_lst2 = list(itertools.chain.from_iterable(big_lst))
 
-            ## min date
-            min_base_url = '/'.join([base_url, mission_product1, min_year,  'catalog.xml'])
-            page1 = requests.get(min_base_url)
-            et = etree.fromstring(page1.content)
-            dataset = et.getchildren()[2].getchildren()[0]
+    date_df = pd.DataFrame(big_lst2, columns=['date', 'start_time', 'end_time', 'file_name', 'file_url', 'file_size', 'modified_date'])
+    date_df['modified_date'] = pd.to_datetime(date_df['modified_date'] + '+00')
+    date_df['start_time'] = pd.to_datetime(date_df['start_time'], format='%H%M%S', errors='coerce').dt.time.astype(str) + 'Z+00'
+    date_df['end_time'] = pd.to_datetime(date_df['end_time'], format='%H%M%S', errors='coerce').dt.time.astype(str) + 'Z+00'
+    date_df['from_date'] = pd.to_datetime(date_df['date'].astype(str) + 'T' +  date_df['start_time'])
+    date_df['to_date'] = pd.to_datetime(date_df['date'].astype(str) + 'T' +  date_df['end_time'])
+    date_df.drop(['date', 'start_time', 'end_time'], axis=1, inplace=True)
 
-            min_mon = dataset.attrib['name']
+    ## Add in extra columns and return
+    date_df['mission'] = mission
+    date_df['product'] = product
+    date_df['version'] = version
 
-            min_base_url2 = '/'.join([base_url, mission_product1, min_year, min_mon, 'catalog.xml'])
-
-            page1 = requests.get(min_base_url2)
-            et = etree.fromstring(page1.content)
-            dataset = et.getchildren()[2].getchildren()[0]
-
-            min_file = dataset.attrib['name']
-            min_date1 = re.search('.\d\d\d\d\d\d\d\d', min_file).group()[1:]
-#            min_time1 = re.search('S\d\d\d\d\d\d', min_file).group()[1:]
-#            min_date = pd.to_datetime(min_date1 + ' ' + min_time1, infer_datetime_format=True)
-            min_date = pd.to_datetime(min_date1, infer_datetime_format=True)
-
-            ## max date
-            max_base_url = '/'.join([base_url, mission_product1, max_year, 'catalog.xml'])
-            page1 = requests.get(max_base_url)
-            et = etree.fromstring(page1.content)
-            dataset = et.getchildren()[2].getchildren()[-1]
-
-            max_mon = dataset.attrib['name']
-
-            max_base_url2 = '/'.join([base_url, mission_product1, max_year,  max_mon, 'catalog.xml'])
-
-            page1 = requests.get(max_base_url2)
-            et = etree.fromstring(page1.content)
-            dataset = et.getchildren()[2].getchildren()[-1]
-
-            max_file = dataset.attrib['name']
-            max_date1 = re.search('.\d\d\d\d\d\d\d\d', max_file).group()[1:]
-#            max_time1 = re.search('E\d\d\d\d\d\d', max_file).group()[1:]
-#            max_date = pd.to_datetime(max_date1 + ' ' + max_time1, infer_datetime_format=True)
-            max_date = pd.to_datetime(max_date1, infer_datetime_format=True)
-
-            ## combine
-            min_max_dates.update({p: [m1, min_date, max_date]})
-
-    ## Convert to dataframe
-    min_max = pd.DataFrame.from_dict(min_max_dates, orient='index').reset_index()
-    min_max.columns = ['product', 'mission', 'start_date', 'end_date']
-    min_max1 = min_max.set_index(['mission', 'product'])
-
-    return min_max1
+    return date_df
 
 
 def rd_dir(data_dir, ext):

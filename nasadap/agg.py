@@ -6,7 +6,9 @@ import os
 import numpy as np
 import pandas as pd
 import xarray as xr
-from nasadap import Nasa, min_max_dates
+from nasadap import Nasa, parse_nasa_catalog
+#from core import Nasa
+#from util import parse_nasa_catalog
 
 
 ###################################################
@@ -19,7 +21,7 @@ file_name = '{mission}_{product}_v{version:02}_{from_date}-{to_date}.nc4'
 ### Aggregate files
 
 
-def time_combine(mission, product, datasets, save_dir, username, password, cache_dir, tz_hour_gmt, freq, min_lat, max_lat, min_lon, max_lon, dl_sim_count):
+def time_combine(mission, product, version, datasets, save_dir, username, password, cache_dir, tz_hour_gmt, freq, min_lat, max_lat, min_lon, max_lon, dl_sim_count):
     """
     Function to aggregate the data from the cache to netcdf files and update the cache if new data has been added to the NASA server.
 
@@ -64,15 +66,15 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
         datasets = [datasets]
 
     ge = Nasa(username, password, mission, cache_dir)
-    sp_file_name1 = sp_file_name.format(mission=mission, product=product, version=7)
+    sp_file_name1 = sp_file_name.format(mission=mission, product=product, version=version)
     product_path = os.path.join(save_dir, mission + '_' + product)
     if not os.path.exists(product_path):
         os.makedirs(product_path)
     files1 = [os.path.join(product_path, f) for f in os.listdir(product_path) if sp_file_name1 in f]
 
     print('*Reading existing files...')
-    min_max = min_max_dates(mission, product)
-    end_date = str(min_max['end_date'].iloc[0].date())
+    min_max = parse_nasa_catalog(mission, product, version, min_max=True)
+    end_date = str(min_max['to_date'].iloc[-1].date())
     if files1:
         latest_file = files1[-1]
         ds0 = xr.open_dataset(latest_file)
@@ -105,7 +107,7 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
         print(str(s.date()), str(e.date()))
         s1 = str((s - pd.DateOffset(hours=tz_hour_gmt)).date())
         e1 =  str((e + pd.DateOffset(hours=tz_hour_gmt)).date())
-        ds2 = ge.get_data(product, datasets, from_date=s1, to_date=e1, min_lat=min_lat, max_lat=max_lat, min_lon=min_lon, max_lon=max_lon, dl_sim_count=dl_sim_count).load()
+        ds2 = ge.get_data(product, version, datasets, from_date=s1, to_date=e1, min_lat=min_lat, max_lat=max_lat, min_lon=min_lon, max_lon=max_lon, dl_sim_count=dl_sim_count).load()
         ds2['time'] = ds2.time.to_index() + pd.DateOffset(hours=tz_hour_gmt)
         ds2['time'].attrs = time_dict
         ds2 = ds2.sel(time=slice(s, str(e.date())))
@@ -113,7 +115,7 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
             print('*New data will be added')
             if isinstance(ds1, xr.Dataset):
                 ds2 = ds2.combine_first(ds1).sortby('time')
-                ds1 = None
+                ds1.close()
                 s = pd.Timestamp(ds2.time.min().data).floor('D')
             attr_dict = {key: value for key, value in ds2.attrs.items() if key in ['title']}
             if not 'title' in attr_dict:
@@ -122,7 +124,7 @@ def time_combine(mission, product, datasets, save_dir, username, password, cache
             ds2.attrs = attr_dict
             print('*Saving new data...')
             new_dates = ds2.time.to_index().strftime('%Y%m%d')
-            new_file_name = file_name.format(mission=mission, product=product, version=7, from_date=min(new_dates), to_date=max(new_dates))
+            new_file_name = file_name.format(mission=mission, product=product, version=version, from_date=min(new_dates), to_date=max(new_dates))
             new_file_path = os.path.join(product_path, new_file_name)
             ds2.to_netcdf(new_file_path)
             ds2.close()
