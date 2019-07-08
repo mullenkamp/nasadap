@@ -3,7 +3,7 @@ nasadap - A Python package for downloading NASA data using DAP
 
 The nasadap package contains a class and associated methods/functions to download NASA satellite data products and convert them to `xarray <http://xarray.pydata.org>`_ datasets. It uses the python package `pydap <https://pydap.readthedocs.io>`_ to access the NASA `Hyrax <https://docs.opendap.org/index.php/Hyrax>`_ OPeNDAP servers.
 
-At the moment, nasadap can only download the satellite precipitation data from the TRMM and GPM missions.
+At the moment, nasadap can only download the satellite precipitation data from the GPM mission.
 
 The official list of precipitation products can be found `here <https://pmm.nasa.gov/data-access/downloads/>`_.
 The products available via nasadap are described below.
@@ -29,7 +29,7 @@ Tropical Rainfall Measuring Mission (TRMM)
 A full description and documentation of the TRMM can be found on the `NASA TRMM site <https://doi.org/10.5067/TRMM/TMPA/3H/7>`_ [1].
 "This dataset is the output from the TMPA (TRMM Multi-satellite Precipitation) Algorithm, and provides precipitation estimates in the TRMM regions that have the (nearly-zero) bias of the ”TRMM Combined Instrument” precipitation estimate and the dense sampling of high-quality microwave data with fill-in using microwave-calibrated infrared estimates. The granule size is 3 hours."
 
-This dataset has been deprecated since NASA has processed the TRMM data using the GPM algorithm, which means GPM data is available back until 2000.
+**Update** This dataset has been deprecated since NASA has processed the TRMM data using the GPM algorithm, which means GPM data is available back to 2000.
 
 .. [1] Tropical Rainfall Measuring Mission (TRMM) (2011), TRMM (TMPA) Rainfall Estimate L3 3 hour 0.25 degree x 0.25 degree V7, Greenbelt, MD, Goddard Earth Sciences Data and Information Services Center (GES DISC), Accessed: 2018-12-28, `10.5067/TRMM/TMPA/3H/7 <https://doi.org/10.5067/TRMM/TMPA/3H/7>`_
 
@@ -47,7 +47,7 @@ The daily products have been deprecated as it is better to download the finer te
 The dataset that most people would want is called "precipitationCal".
 
 **NOTE:** According to the `official TRMM docs <https://docserver.gesdisc.eosdis.nasa.gov/public/project/GPM/README.TRMM.pdf>`_ under B-9, NASA will be reprocessing the TRMM data back until 2000 using the GPM IMERG V05 algorithm for consistency across the two mission's products. This will be integrated into nasadap once it's up.
-**Update** They have done it! GPM data back until 2000 has been integrated into nasadap. It has currently been processed for the 3IMERGHH product and has been given a new version number (6).
+**Update** They have done it! GPM data back to 2000 has been integrated into nasadap. It has currently been processed for the 3IMERGHH product and has been given a new version number (6).
 
 .. [2] George Huffman (2017), GPM IMERG Final Precipitation L3 Half Hourly 0.1 degree x 0.1 degree V05, Greenbelt, MD, Goddard Earth Sciences Data and Information Services Center (GES DISC), Accessed: 2018-12-28, `10.5067/GPM/IMERG/3B-HH/05 <https://doi.org/10.5067/GPM/IMERG/3B-HH/05>`_
 
