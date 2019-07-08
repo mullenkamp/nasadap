@@ -85,7 +85,7 @@ def time_combine(mission, product, version, datasets, save_dir, username, passwo
         start_date = str(time0.max().date())
         max_test_date = ds1.time.max().values
     else:
-        start_date = str(min_max['start_date'].iloc[0].date())
+        start_date = str(min_max['from_date'].iloc[0].date())
         max_test_date = np.datetime64('1900-01-01')
         latest_file = None
         ds1 = None

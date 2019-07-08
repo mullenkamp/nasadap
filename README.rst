@@ -29,9 +29,7 @@ Tropical Rainfall Measuring Mission (TRMM)
 A full description and documentation of the TRMM can be found on the `NASA TRMM site <https://doi.org/10.5067/TRMM/TMPA/3H/7>`_ [1].
 "This dataset is the output from the TMPA (TRMM Multi-satellite Precipitation) Algorithm, and provides precipitation estimates in the TRMM regions that have the (nearly-zero) bias of the ”TRMM Combined Instrument” precipitation estimate and the dense sampling of high-quality microwave data with fill-in using microwave-calibrated infrared estimates. The granule size is 3 hours."
 
-This dataset has two downloadable products: The core 3 hour product (3B42) and the daily aggregate (3B42_Daily). The spatial resolution is  0.25° x 0.25° (~25 km).
-
-The dataset that most people would want is called "precipitation".
+This dataset has been deprecated since NASA has processed the TRMM data using the GPM algorithm, which means GPM data is available back until 2000.
 
 .. [1] Tropical Rainfall Measuring Mission (TRMM) (2011), TRMM (TMPA) Rainfall Estimate L3 3 hour 0.25 degree x 0.25 degree V7, Greenbelt, MD, Goddard Earth Sciences Data and Information Services Center (GES DISC), Accessed: 2018-12-28, `10.5067/TRMM/TMPA/3H/7 <https://doi.org/10.5067/TRMM/TMPA/3H/7>`_
 
@@ -42,14 +40,14 @@ A full description and documentation of the GPM can be found on the `NASA GPM si
 
 The precipitation estimates from the various precipitation-relevant satellite passive microwave (PMW) sensors comprising the GPM constellation are computed using the 2014 version of the Goddard Profiling Algorithm (GPROF2014), then gridded, intercalibrated to the GPM Combined Instrument product, and combined into half-hourly 10x10 km fields."
 
-This dataset has six downloadable products and are broken up into two sets of three.
+This dataset has three downloadable products.
 The core product set has a temporal resolution of 30 minutes and have three different "runs": Early (3IMERGHHE), Late (3IMERGHHL), and Final (3IMERGHH). Early is 4 hours behind real-time, Late is 12 hours behind real-time, and Late has been rain-gauge calibrated and is several months behind. A more thorough description can be found at the link above.
-The second set of products are daily aggregates of the first product set. Early (3IMERGDE), Late (3IMERGDL), and Final (3IMERGDF).
-The spatial resolution is  0.1° x 0.1° (~10 km).
+The daily products have been deprecated as it is better to download the finer temporal resolution products and aggregate them as needed due to time zone issues that might arise when only using the daily products.
 
 The dataset that most people would want is called "precipitationCal".
 
 **NOTE:** According to the `official TRMM docs <https://docserver.gesdisc.eosdis.nasa.gov/public/project/GPM/README.TRMM.pdf>`_ under B-9, NASA will be reprocessing the TRMM data back until 2000 using the GPM IMERG V05 algorithm for consistency across the two mission's products. This will be integrated into nasadap once it's up.
+**Update** They have done it! GPM data back until 2000 has been integrated into nasadap. It has currently been processed for the 3IMERGHH product and has been given a new version number (6).
 
 .. [2] George Huffman (2017), GPM IMERG Final Precipitation L3 Half Hourly 0.1 degree x 0.1 degree V05, Greenbelt, MD, Goddard Earth Sciences Data and Information Services Center (GES DISC), Accessed: 2018-12-28, `10.5067/GPM/IMERG/3B-HH/05 <https://doi.org/10.5067/GPM/IMERG/3B-HH/05>`_
 
@@ -59,21 +57,19 @@ At the moment, there is a single class called NASA that provides access to the d
 
 .. code-block:: python
 
-  from nasadap import Nasa, min_max_dates
+  from nasadap import Nasa, parse_nasa_catalog
 
   ###############################
   ### Parameters
 
   username = '' # Need to change!
   password = '' # Need to change!
-  mission1 = 'trmm'
-  mission2 = 'gpm'
-  from_date = '2018-01-30'
-  to_date = '2018-02-02'
-  product1 = '3B42'
-  product2 = '3IMERGDF'
-  dataset_type1 = 'precipitation'
-  dataset_type2 = 'precipitationCal'
+  mission = 'gpm'
+  product = '3IMERGHH'
+  version = 6
+  from_date = '2019-03-28'
+  to_date = '2019-03-29'
+  dataset_type = 'precipitationCal'
   min_lat=-49
   max_lat=-33
   min_lon=165
@@ -83,22 +79,19 @@ At the moment, there is a single class called NASA that provides access to the d
   ###############################
   ### Examples
 
-  min_max = min_max_dates(mission1) # Will give you the min and max available dates for products
+  min_max1 = parse_nasa_catalog(mission, product, version, min_max=True) # Will give you the min and max available dates for products
 
-  ge1 = Nasa(username, password, mission1, cache_dir)
+  ge1 = Nasa(username, password, mission, cache_dir)
 
   products = ge1.get_products()
 
   datasets = ge1.get_dataset_types(products[0])
 
-  ds1 = ge1.get_data(product1, dataset_type1, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
+  ds1 = ge1.get_data(product, version, dataset_type, from_date, to_date, min_lat,
+                      max_lat, min_lon, max_lon)
   ge1.close()
 
-  ge2 = Nasa(username, password, mission2, cache_dir)
-  ds2 = ge2.get_data(product2, dataset_type2, from_date, to_date, min_lat, max_lat, min_lon, max_lon)
-  ge2.close()
-
-Once you've got the cached data, you might want to aggregate the netcdf files by year or month to make it more accessible outside of nasadap. The time_combine function under the agg module provides a way to aggregate all of the many netcdf files together and will update the files as new data is added to NASA's server. It will also shift the time to the appropriate time zone (since the NASA data is in UTC).
+Once you've got the cached data, you might want to aggregate the netcdf files by year or month to make it more accessible outside of nasadap. The time_combine function under the agg module provides a way to aggregate all of the many netcdf files together and will update the files as new data is added to NASA's server. It will also shift the time to the appropriate time zone (since the NASA data is in UTC+00).
 
 .. code-block:: python
 
@@ -113,10 +106,11 @@ Once you've got the cached data, you might want to aggregate the netcdf files by
   username = '' # Need to change!
   password = '' # Need to change!
 
-  mission = 'trmm'
-  freq = 'A'
-  product = '3B42'
-  datasets = ['precipitation', 'relativeError']
+  mission = 'gpm'
+  freq = 'M'
+  product = '3IMERGHH'
+  version = 6
+  datasets = ['precipitationCal']
 
   min_lat=-49
   max_lat=-33
@@ -125,6 +119,6 @@ Once you've got the cached data, you might want to aggregate the netcdf files by
   dl_sim_count = 50
   tz_hour_gmt = 12
 
-  agg.time_combine(mission, product, datasets, save_dir, username, password,
+  agg.time_combine(mission, product, version, datasets, save_dir, username, password,
                     cache_dir, tz_hour_gmt, freq, min_lat, max_lat, min_lon,
                     max_lon, dl_sim_count)
