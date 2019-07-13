@@ -77,10 +77,8 @@ def time_combine(mission, product, version, datasets, save_dir, username, passwo
     end_date = str(min_max['to_date'].iloc[-1].date())
     if files1:
         latest_file = files1[-1]
-        ds0 = xr.open_dataset(latest_file)
-        ds1 = ds0.copy()
-        ds0.close()
-        del ds0
+        with xr.open_dataset(latest_file) as ds0:
+            ds1 = ds0.copy()
         time0 = ds1.time.to_index()
         start_date = str(time0.max().date())
         max_test_date = ds1.time.max().values
@@ -116,6 +114,7 @@ def time_combine(mission, product, version, datasets, save_dir, username, passwo
             if isinstance(ds1, xr.Dataset):
                 ds2 = ds2.combine_first(ds1).sortby('time')
                 ds1.close()
+                del ds1
                 s = pd.Timestamp(ds2.time.min().data).floor('D')
             attr_dict = {key: value for key, value in ds2.attrs.items() if key in ['title']}
             if not 'title' in attr_dict:
@@ -128,9 +127,14 @@ def time_combine(mission, product, version, datasets, save_dir, username, passwo
             new_file_path = os.path.join(product_path, new_file_name)
             ds2.to_netcdf(new_file_path)
             ds2.close()
+            del ds2
         else:
-            ds1 = None
+            if isinstance(ds1, xr.Dataset):
+                ds1.close()
+                del ds1
             new_file_path = None
+            ds2.close()
+            del ds2
             print('*No data to be updated')
         new_paths.append(new_file_path)
     if isinstance(latest_file, str) & isinstance(new_paths[0], str):
