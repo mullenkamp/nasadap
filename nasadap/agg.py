@@ -78,15 +78,13 @@ def time_combine(mission, product, version, datasets, save_dir, username, passwo
     if files1:
         latest_file = files1[-1]
         with xr.open_dataset(latest_file) as ds0:
-            ds1 = ds0.copy()
-        time0 = ds1.time.to_index()
-        start_date = str(time0.max().date())
-        max_test_date = ds1.time.max().values
+            time0 = ds0.time.to_index()
+            start_date = str(time0.max().date())
+            max_test_date = ds0.time.max().values
     else:
         start_date = str(min_max['from_date'].iloc[0].date())
         max_test_date = np.datetime64('1900-01-01')
         latest_file = None
-        ds1 = None
 
     ### Prepare the date ranges
     end_dates = pd.date_range(start_date, end_date, freq=freq)
@@ -111,10 +109,9 @@ def time_combine(mission, product, version, datasets, save_dir, username, passwo
         ds2 = ds2.sel(time=slice(s, str(e.date())))
         if max_test_date != ds2.time.max().values:
             print('*New data will be added')
-            if isinstance(ds1, xr.Dataset):
-                ds2 = ds2.combine_first(ds1).sortby('time')
-                ds1.close()
-                del ds1
+            if isinstance(latest_file, str):
+                with xr.open_dataset(latest_file) as ds0:
+                    ds2 = ds2.combine_first(ds0).sortby('time')
                 s = pd.Timestamp(ds2.time.min().data).floor('D')
             attr_dict = {key: value for key, value in ds2.attrs.items() if key in ['title']}
             if not 'title' in attr_dict:
@@ -127,11 +124,7 @@ def time_combine(mission, product, version, datasets, save_dir, username, passwo
             new_file_path = os.path.join(product_path, new_file_name)
             ds2.to_netcdf(new_file_path)
             ds2.close()
-            del ds2
         else:
-            if isinstance(ds1, xr.Dataset):
-                ds1.close()
-                del ds1
             new_file_path = None
             ds2.close()
             del ds2
