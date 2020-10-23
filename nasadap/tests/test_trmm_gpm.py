@@ -16,7 +16,7 @@ pd.options.display.max_columns = 10
 ### Parameters
 
 mission = 'gpm'
-version = 5
+version = 6
 product2d = '3IMERGHHE'
 product2e = '3IMERGHHL'
 product2f = '3IMERGHH'

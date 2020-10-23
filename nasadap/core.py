@@ -56,9 +56,9 @@ def download_files(url, path, session, master_dataset_list, dataset_types, min_l
             counter = 0
         except Exception as err:
             print(err)
-            print('Retrying in 3 seconds...')
+            print('Retrying in 5 seconds...')
             counter = counter - 1
-            sleep(3)
+            sleep(5)
 
     ## Save data as cache
     if not os.path.isfile(path):
@@ -175,7 +175,7 @@ class Nasa(object):
         return master_datasets[product]
 
 
-    def get_data(self, product, version, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None, dl_sim_count=30, check_local=True):
+    def get_data(self, product, version, dataset_types, from_date=None, to_date=None, min_lat=None, max_lat=None, min_lon=None, max_lon=None, dl_sim_count=2, check_local=True):
         """
         Function to download trmm or gpm data and convert it to an xarray dataset.
 
@@ -198,7 +198,7 @@ class Nasa(object):
         max_lon : int, float, or None
             The maximum lon to extract in WGS84 decimal degrees.
         dl_sim_count : int
-            The number of simultaneous downloads on a single thread. Speed could be increased with more simultaneous downloads, but up to a limit of the PC's single thread speed. Also, NASA's opendap server seems to have a limit to the total number of simultaneous downloads. 50-60 seems to be around the max.
+            The number of simultaneous downloads on a single thread. Speed could be increased with more simultaneous downloads, but up to a limit of the PC's single thread speed. Also, NASA's opendap server seems to have a limit to the total number of simultaneous downloads. 3 seems to be around the max.
         check_local : bool
             Should the local files be checked and read? Pass False if you only want to download files and not check for local files. Any local files will be overwritten!
 
@@ -316,4 +316,3 @@ class Nasa(object):
             pickle.dump(master_set, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         return ds_all
-

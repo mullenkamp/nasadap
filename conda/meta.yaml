@@ -36,7 +36,7 @@ requirements:
     - setuptools
   run:
     - python
-    - xarray
+    - xarray=0.12
     - pydap
     - lxml
     - requests
